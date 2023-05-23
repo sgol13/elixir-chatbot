@@ -21,3 +21,8 @@ erl_crash.dump
 
 # Temporary files, for example, from tests.
 /tmp/
+
+*.beam
+/config/*.secret.exs
+.elixir_ls/
+
