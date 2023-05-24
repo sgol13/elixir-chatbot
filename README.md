@@ -1,1 +1,3 @@
-# elixir-chatbot
+# ElixirChatbot
+
+**TODO: Add description**
