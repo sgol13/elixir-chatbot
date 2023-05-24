@@ -1,0 +1,10 @@
+%{
+  "complex": {:hex, :complex, "0.5.0", "af2d2331ff6170b61bb738695e481b27a66780e18763e066ee2cd863d0b1dd92", [:mix], [], "hexpm", "2683bd3c184466cfb94fad74cbfddfaa94b860e27ad4ca1bffe3bff169d91ef1"},
+  "erlport": {:hex, :erlport, "0.10.1", "c96ffa51bbcab0298232fcdfe8c3e110f1598011de71ae6b9082b80c9e2e476a", [:rebar3], [], "hexpm", "34931e8cb62a131d1bc8a2bd04d4007c73c03e4f10e22ee4a218e7172227a918"},
+  "fast_ngram": {:hex, :fast_ngram, "1.2.0", "0652c25d3f66e69e6780121cf19200442fe70da689b39ccaa8998da6ee2f65cc", [:mix], [], "hexpm", "90c949c5b00314d8117a5bf2fbf6a05ef945ce4cad66a47bc26f8d9ec30dc1bd"},
+  "nx": {:hex, :nx, "0.5.3", "6ad5534f9b82429dafa12329952708c2fdd6ab01b306e86333fdea72383147ee", [:mix], [{:complex, "~> 0.5", [hex: :complex, repo: "hexpm", optional: false]}, {:telemetry, "~> 0.4.0 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "d1072fc4423809ed09beb729e73c200ce177ddecac425d9eb6fba643669623ec"},
+  "semantics": {:git, "https://github.com/tlack/semantics", "f528e7afae327927ed8eeb7254736f126e267dc0", []},
+  "similarity": {:hex, :similarity, "0.4.0", "08fb488308f7f0d29dcfdfd0789c3be1535fd27ad4e03fa98e9a341d744a9c6e", [:mix], [{:fast_ngram, "~> 1.0", [hex: :fast_ngram, repo: "hexpm", optional: false]}, {:siphash, "~> 3.0", [hex: :siphash, repo: "hexpm", optional: false]}], "hexpm", "a053cd3eec5ba729e972a35eb34de1f524cf26b0776f97b31fe557c63fbf7a9b"},
+  "siphash": {:hex, :siphash, "3.2.0", "ec03fd4066259218c85e2a4b8eec4bb9663bc02b127ea8a0836db376ba73f2ed", [:make, :mix], [], "hexpm", "ba3810701c6e95637a745e186e8a4899087c3b079ba88fb8f33df054c3b0b7c3"},
+  "telemetry": {:hex, :telemetry, "1.2.1", "68fdfe8d8f05a8428483a97d7aab2f268aaff24b49e0f599faa091f1d4e7f61c", [:rebar3], [], "hexpm", "dad9ce9d8effc621708f99eac538ef1cbe05d6a874dd741de2e689c47feafed5"},
+}
