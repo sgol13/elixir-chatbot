@@ -35,11 +35,21 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
   end
 
   defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: SentenceTransformers do
+    @dummy_text "dummy text"
+
     @impl true
     @spec generate_embedding(%ElixirChatbotCore.EmbeddingModel.SentenceTransformers{}, binary) ::
             Nx.Tensor.t()
     def generate_embedding(model, text) do
       SentenceTransformers.generate_embedding(model, text)
+    end
+
+    @impl true
+    @spec get_embedding_dimension(%ElixirChatbotCore.EmbeddingModel.SentenceTransformers{}) :: non_neg_integer()
+    def get_embedding_dimension(model) do
+      embedding = SentenceTransformers.generate_embedding(model, @dummy_text)
+      {dim} = Nx.shape(embedding)
+      dim
     end
   end
 end
