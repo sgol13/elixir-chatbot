@@ -10,6 +10,11 @@ defmodule ChatWeb.Application do
     children = [
       # Start the Telemetry supervisor
       ChatWeb.Telemetry,
+
+      # Start the PubSub system
+      # This needs to be removed when we add PubSub to another Umbrella app
+      {Phoenix.PubSub, name: ChatWeb.PubSub},
+
       # Start the Endpoint (http/https)
       ChatWeb.Endpoint
       # Start a worker by calling: ChatWeb.Worker.start_link(arg)

@@ -1,32 +1,26 @@
-<header class="px-4 sm:px-6 lg:px-8">
+<header class="fixed px-4 sm:px-6 lg:px-8 w-full bg-white">
   <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
     <div class="flex items-center gap-4">
-      <a href="/">
-        <img src={~p"/images/logo.svg"} width="36" />
+      <a 
+        href="https://github.com/sgol13/elixir-chatbot"
+        class="flex items-center gap-2 font-semibold"
+        target="_blank"
+      >
+        <img src={~p"/images/elixir_logo.png"} width="36" />
+        <p class="text-xl text-gray-600 font-bold px-4">elixir chatbot</p>
       </a>
-      <p class="bg-brand/5 text-brand rounded-full px-2 font-medium leading-6">
-        v<%= Application.spec(:phoenix, :vsn) %>
-      </p>
     </div>
     <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
-      <a href="https://twitter.com/elixirphoenix" class="hover:text-zinc-700">
-        @elixirphoenix
-      </a>
-      <a href="https://github.com/phoenixframework/phoenix" class="hover:text-zinc-700">
-        GitHub
-      </a>
       <a
-        href="https://hexdocs.pm/phoenix/overview.html"
+        href="https://elixir-lang.org/docs.html"
         class="rounded-lg bg-zinc-100 px-2 py-1 hover:bg-zinc-200/80"
+        target="_blank"
       >
-        Get Started <span aria-hidden="true">&rarr;</span>
+        Elixir docs <span aria-hidden="true">&rarr;</span>
       </a>
     </div>
   </div>
 </header>
 <main class="px-4 py-20 sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-2xl">
-    <.flash_group flash={@flash} />
-    <%= @inner_content %>
-  </div>
+  <%= @inner_content %>
 </main>

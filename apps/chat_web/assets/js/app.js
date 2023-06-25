@@ -39,3 +39,9 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// scroll to the bottom whenever messages list is updated
+window.addEventListener("phx:update", () => {
+    let element = document.documentElement;
+    element.scrollTop = element.scrollHeight;
+});
+
