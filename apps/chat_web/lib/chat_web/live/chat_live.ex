@@ -1,8 +1,10 @@
 defmodule ChatWeb.ChatLive do
   use ChatWeb, :live_view
 
+  alias ChatWeb.Message
+
   def mount(_params, _session, socket) do
-    initial_messages = [create_bot_message("Hello, how can I help you?")]
+    initial_messages = [Message.bot_message("Hello, how can I help you?")]
     {:ok, assign(socket, messages: initial_messages, new_message: "")}
   end
 
@@ -12,7 +14,7 @@ defmodule ChatWeb.ChatLive do
 
   def handle_event("send_message", %{"new_message" => message_text}, socket) do
     process_user_message(message_text)
-    new_messages = [create_user_message(message_text) | socket.assigns.messages]
+    new_messages = [Message.user_message(message_text) | socket.assigns.messages]
     {:noreply, assign(socket, messages: new_messages, new_message: "")}
   end
 
@@ -22,13 +24,9 @@ defmodule ChatWeb.ChatLive do
 
   defp process_user_message(message_text) do
     Task.async(fn ->
-      try do
-        response = ChatWeb.BotFacade.send(message_text)
-        {:bot_message, response}
-      rescue
-        exception -> {:bot_error, exception}
-      catch
-        exception -> {:bot_error, exception}
+      case ChatWeb.BotFacade.send(message_text) do
+        {:ok, response} -> {:bot_message, response}
+        {:error, err} -> {:bot_error, err}
       end
     end)
   end
@@ -38,20 +36,12 @@ defmodule ChatWeb.ChatLive do
   end
 
   def handle_info({_ref, {:bot_error, _exception}}, socket) do
-    new_messages = [create_bot_message("Error creating the response.") | socket.assigns.messages]
+    new_messages = [Message.bot_message("Error creating the response.") | socket.assigns.messages]
     {:noreply, assign(socket, messages: new_messages)}
   end
 
   def handle_info({_ref, {:bot_message, message_text}}, socket) do
-    new_messages = [create_bot_message(message_text) | socket.assigns.messages]
+    new_messages = [Message.bot_message(message_text) | socket.assigns.messages]
     {:noreply, assign(socket, messages: new_messages)}
-  end
-
-  defp create_user_message(message_text) do
-    %{text: message_text, sender: :user, id: UUID.uuid4()}
-  end
-
-  defp create_bot_message(message_text) do
-    %{text: message_text, sender: :bot, id: UUID.uuid4()}
   end
 end
