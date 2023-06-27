@@ -30,7 +30,9 @@ defmodule ElixirChatbotCore.MixProject do
       # {:sibling_app_in_umbrella, in_umbrella: true}
       {:semantics, git: "https://github.com/tlack/semantics"},
       {:hnswlib, git: "https://github.com/elixir-nx/hnswlib.git"},
-      {:nx, "~> 0.5.3"}
+      {:nx, "~> 0.5.3"},
+      {:bumblebee, "~> 0.3.0"},
+      {:exla, ">= 0.0.0"}
     ]
   end
 end
