@@ -28,10 +28,9 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
           },
           String.t()
         ) :: Nx.Tensor.t()
-  def generate_embedding(model, text) do
-    %SentenceTransformers{model_name: model_name} = model
-    embedding = Semantics.embedding(text, model_name)
-    Nx.tensor(embedding)
+  def generate_embedding(%SentenceTransformers{model_name: model_name}, text) do
+    Semantics.embedding(text, model_name)
+    |> Nx.tensor(embedding)
   end
 
   defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: SentenceTransformers do
