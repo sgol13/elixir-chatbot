@@ -17,34 +17,34 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
     Semantics.load(model_name)
   end
 
-  @spec new(String.t()) :: %ElixirChatbotCore.EmbeddingModel.SentenceTransformers{model_name: String.t()}
+  @spec new(String.t()) :: %SentenceTransformers{model_name: String.t()}
   def new(model_name) do
     %SentenceTransformers{model_name: model_name}
   end
 
   @spec generate_embedding(
-          %ElixirChatbotCore.EmbeddingModel.SentenceTransformers{
+          %SentenceTransformers{
             :model_name => String.t()
           },
           String.t()
         ) :: Nx.Tensor.t()
   def generate_embedding(%SentenceTransformers{model_name: model_name}, text) do
     Semantics.embedding(text, model_name)
-    |> Nx.tensor(embedding)
+    |> Nx.tensor()
   end
 
   defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: SentenceTransformers do
     @dummy_text "dummy text"
 
     @impl true
-    @spec generate_embedding(%ElixirChatbotCore.EmbeddingModel.SentenceTransformers{}, binary) ::
+    @spec generate_embedding(%SentenceTransformers{}, binary) ::
             Nx.Tensor.t()
     def generate_embedding(model, text) do
       SentenceTransformers.generate_embedding(model, text)
     end
 
     @impl true
-    @spec get_embedding_dimension(%ElixirChatbotCore.EmbeddingModel.SentenceTransformers{}) :: non_neg_integer()
+    @spec get_embedding_dimension(%SentenceTransformers{}) :: non_neg_integer()
     def get_embedding_dimension(model) do
       embedding = SentenceTransformers.generate_embedding(model, @dummy_text)
       {dim} = Nx.shape(embedding)
