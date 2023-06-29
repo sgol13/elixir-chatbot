@@ -8,7 +8,6 @@ defmodule ElixirChatbotCore.GenerationModel do
   end
 
   def init(repository) do
-    Nx.global_default_backend(EXLA.Backend)
     serving = load_model(repository)
     Logger.info("Generation model loaded.")
     {:ok, serving}
