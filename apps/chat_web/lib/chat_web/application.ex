@@ -5,11 +5,23 @@ defmodule ChatWeb.Application do
 
   use Application
 
+  @default_embedding_model "paraphrase-MiniLM-L6-v2"
+
   @impl true
   def start(_type, _args) do
     children = [
       # Start the Telemetry supervisor
       ChatWeb.Telemetry,
+      {Task,
+       fn ->
+         ElixirChatbotCore.EmbeddingModel.SentenceTransformers.start_semantics_server(
+           @default_embedding_model
+         )
+       end},
+      ElixirChatbotCore.DocumentationDatabase.child_spec(nil),
+      ElixirChatbotCore.GenerationModel.child_spec(nil),
+      ChatWeb.IndexServer.child_spec(nil),
+      ChatWeb.LoadEmbeddingsTask,
 
       # Start the PubSub system
       # This needs to be removed when we add PubSub to another Umbrella app
@@ -34,4 +46,6 @@ defmodule ChatWeb.Application do
     ChatWeb.Endpoint.config_change(changed, removed)
     :ok
   end
+
+  def default_embedding_model(), do: @default_embedding_model
 end

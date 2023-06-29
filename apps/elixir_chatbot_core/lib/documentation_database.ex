@@ -1,11 +1,18 @@
 defmodule ElixirChatbotCore.DocumentationDatabase do
-  alias ElixirChatbotCore.DocumentationDatabase
   alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
 
   use GenServer
 
   def start_link(path) do
     GenServer.start_link(__MODULE__, path, name: __MODULE__)
+  end
+
+  def child_spec(_) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [Application.fetch_env!(:chat_web, :database_path)]},
+      type: :worker
+    }
   end
 
   @impl true
@@ -25,6 +32,11 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
     {:reply, CubDB.get(db, id), db}
   end
 
+  @impl true
+  def handle_call(:get_all, _from, db) do
+    {:reply, CubDB.select(db), db}
+  end
+
   @spec add(DocumentationFragment.DocumentationFragment.t()) :: non_neg_integer()
   def add(documentation_fragment) do
     GenServer.call(__MODULE__, {:add, documentation_fragment})
@@ -33,5 +45,9 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
   @spec get(non_neg_integer()) :: DocumentationFragment.DocumentationFragment.t()
   def get(id) do
     GenServer.call(__MODULE__, {:get, id})
+  end
+
+  def get_all() do
+    GenServer.call(__MODULE__, :get_all)
   end
 end
