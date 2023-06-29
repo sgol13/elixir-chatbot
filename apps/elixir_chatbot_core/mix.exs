@@ -32,7 +32,8 @@ defmodule ElixirChatbotCore.MixProject do
       {:hnswlib, git: "https://github.com/elixir-nx/hnswlib.git"},
       {:nx, "~> 0.5.3"},
       {:bumblebee, "~> 0.3.0"},
-      {:exla, ">= 0.0.0"}
+      {:exla, ">= 0.0.0"},
+      {:cubdb, " ~> 2.0.2"}
     ]
   end
 end
