@@ -1,7 +1,6 @@
 defmodule ElixirChatbotCore.GenerationModel do
   use GenServer
-
-  import Logger
+  require Logger
 
   def start_link(arg) do
     GenServer.start_link(__MODULE__, arg, name: __MODULE__)
