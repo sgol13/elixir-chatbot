@@ -102,4 +102,5 @@ import_config "#{config_env()}.exs"
 config :nx, :default_backend, {EXLA.Backend, []}
 
 config :chat_web,
-  database_path: Path.expand("tmp/db-#{config_env()}")
+  database_path: Path.expand("tmp/db-#{config_env()}"),
+  hnsw_index_path: Path.expand("tmp/index-#{config_env()}")

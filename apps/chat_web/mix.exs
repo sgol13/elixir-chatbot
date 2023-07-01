@@ -13,7 +13,8 @@ defmodule ChatWeb.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      xref: [exclude: [ElixirChatbotCore]] # here as a workaround for a bug in ElixirLS which causes it to not detect other applications in the umbrella and emit warnings
     ]
   end
 
