@@ -26,7 +26,8 @@ defmodule ElixirChatbotCore.DocumentationManager do
 
   defp module_doc(module) do
     case Code.fetch_docs(module) do
-      {:docs_v1, _, _, _, module_doc, _, _} -> {:ok, module_doc |> doc_map_to_binary()}
+      {:docs_v1, _, _, "text/markdown", module_doc, _, _} -> {:ok, module_doc |> doc_map_to_binary()}
+      {:docs_v1, _, _, _, _, _, _} -> {:ok, :none}
       {:error, :module_not_found} -> {:error, :module_not_found}
       {:error, :chunk_not_found} -> {:error, :module_not_found}
     end
@@ -34,11 +35,13 @@ defmodule ElixirChatbotCore.DocumentationManager do
 
   defp function_docs(module) do
     case Code.fetch_docs(module) do
-      {:docs_v1, _, _, _, _, _, docs} ->
+      {:docs_v1, _, _, "text/markdown", _, _, docs} ->
         {:ok,
          docs
-         |> Stream.filter(fn {{type, _, _}, _, _, _, _} -> type == :function end)
+         # |> Stream.filter(fn {{type, _, _}, _, _, _, _} -> type == :function end)
          |> Stream.map(fn {_, _, sig, doc, _} -> {sig, doc |> doc_map_to_binary()} end)}
+
+      {:docs_v1, _, _, _, _, _, _} -> {:ok, []}
 
       {:error, :module_not_found} ->
         {:error, :module_not_found}
