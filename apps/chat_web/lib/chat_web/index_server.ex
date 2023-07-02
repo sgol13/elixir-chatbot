@@ -42,17 +42,19 @@ defmodule ChatWeb.IndexServer do
       num_processed =
         ElixirChatbotCore.DocumentationDatabase.get_all()
         |> Stream.with_index(1)
-        |> Stream.map(fn {{id, fragment}, i} ->
-          case ElixirChatbotCore.SimilarityIndex.add(index, id, fragment.fragment_text) do
+        |> Stream.chunk_every(Application.fetch_env!(:chat_web, :hnsw_data_import_chunk_size))
+        |> Stream.map(fn entries ->
+          entries_preprocessed =
+            entries |> Stream.map(fn {{id, fragment}, _} -> {id, fragment.fragment_text} end)
+
+          case ElixirChatbotCore.SimilarityIndex.add_many(index, entries_preprocessed) do
             {:error, err} -> Logger.warn(err)
             _ -> nil
           end
 
-          if rem(i, 100) == 0 do
-            Logger.info("Processed #{i} fragments...")
-          end
-
-          id
+          i = entries |> Stream.map(fn {_, i} -> i end) |> Enum.max(fn -> 0 end)
+          Logger.info("Processed #{i} fragments...")
+          i
         end)
         |> Enum.max(fn -> 0 end)
 

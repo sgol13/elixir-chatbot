@@ -72,6 +72,28 @@ defmodule ElixirChatbotCore.SimilarityIndex do
     end
   end
 
+  @spec add_many(
+          %ElixirChatbotCore.SimilarityIndex{
+            :embedding_model => any,
+            :index => %HNSWLib.Index{dim: any, reference: any, space: any}
+          },
+          Enumerable.t({non_neg_integer(), String.t()})
+        ) :: :ok | {:error, String.t()}
+  def add_many(index, entries) do
+    %SimilarityIndex{index: index, embedding_model: embedding_model} = index
+
+    {ids, texts} = Enum.unzip(entries)
+
+    embeddings =
+      EmbeddingModel.EmbeddingModel.generate_many(embedding_model, texts)
+      |> Enum.to_list()
+      |> Nx.stack()
+
+    ids = Nx.tensor(ids)
+
+    HNSWLib.Index.add_items(index, embeddings, ids: ids)
+  end
+
   @spec lookup(
           %ElixirChatbotCore.SimilarityIndex{
             :embedding_model => EmbeddingModel.EmbeddingModel.t(),
