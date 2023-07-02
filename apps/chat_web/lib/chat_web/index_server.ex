@@ -26,7 +26,8 @@ defmodule ChatWeb.IndexServer do
   def init(_) do
     embedding =
       ElixirChatbotCore.EmbeddingModel.SentenceTransformers.new(
-        ChatWeb.Application.default_embedding_model()
+        ChatWeb.Application.default_embedding_model(),
+        Application.fetch_env!(:chat_web, :hnsw_data_import_padding_chunk_size)
       )
 
     path = Application.fetch_env!(:chat_web, :hnsw_index_path)
@@ -42,7 +43,7 @@ defmodule ChatWeb.IndexServer do
       num_processed =
         ElixirChatbotCore.DocumentationDatabase.get_all()
         |> Stream.with_index(1)
-        |> Stream.chunk_every(Application.fetch_env!(:chat_web, :hnsw_data_import_chunk_size))
+        |> Stream.chunk_every(Application.fetch_env!(:chat_web, :hnsw_data_import_batch_size))
         |> Stream.map(fn entries ->
           entries_preprocessed =
             entries |> Stream.map(fn {{id, fragment}, _} -> {id, fragment.fragment_text} end)

@@ -5,7 +5,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
 
   @base_path "sentence-transformers"
 
-  def new(model_name) do
+  def new(model_name, chunk_size) do
     ref = "#{@base_path}/#{model_name}"
     {:ok, %{model: model, params: params}} = Bumblebee.load_model({:hf, ref})
     {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, ref})
@@ -39,24 +39,21 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
 
       {num_of_inputs, len} = Nx.shape(Map.get(inputs, "attention_mask"))
 
-      {_, compiled_predict} =
-        Axon.compile(
-          model,
-          %{
-            "attention_mask" => Nx.template({1, len}, :u32),
-            "input_ids" => Nx.template({1, len}, :u32),
-            "token_type_ids" => Nx.template({1, len}, :u32)
-          },
-          params,
-          compiler: EXLA
-        )
+      remainder = rem(len, chunk_size)
+      pad_length = rem(chunk_size - remainder, chunk_size)
+
+      inputs =
+        inputs
+        |> Enum.map(fn {k, v} -> {k, Nx.pad(v, 0, [{0, 0, 0}, {0, pad_length, 0}])} end)
+        |> Map.new()
+
 
       0..(num_of_inputs - 1)
       |> Stream.map(fn i ->
         transformed_input =
           inputs |> Enum.map(fn {k, v} -> {k, Nx.stack([v[i]])} end) |> Map.new()
 
-        compiled_predict.(params, transformed_input).pooled_state
+        predict_function.(params, transformed_input).pooled_state
         |> postprocess.()
       end)
     end

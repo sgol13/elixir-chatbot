@@ -104,4 +104,5 @@ config :nx, :default_backend, {EXLA.Backend, []}
 config :chat_web,
   database_path: Path.expand("tmp/db-#{config_env()}"),
   hnsw_index_path: Path.expand("tmp/index-#{config_env()}"),
-  hnsw_data_import_chunk_size: 20
+  hnsw_data_import_batch_size: 4,
+  hnsw_data_import_padding_chunk_size: 64
