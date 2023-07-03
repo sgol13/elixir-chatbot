@@ -1,30 +1,45 @@
 <div class="h-full scroll-smooth mx-auto max-w-prose text-base">
-    <ul id="messages" phx-update="append" class="mb-16">
-        <%= for message <- @messages do %>
-        <li 
-            id={message.id} 
-            class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
-        >
-            <p class="text-gray-800 line-clamp-2 break-words" ><%= message.text %></p>
-        </li>
-        <% end %>
-    </ul>
-
-    <div class="fixed bottom-0 pb-14 pt-4 bg-white max-w-prose">
-        <.form for={%{}} phx-change="message_change" phx-submit="send_message" style="width: 65ch">
-            <div class="flex flex-row items-center bg-teal-0">
-                <.button style="margin: 0.5rem; padding-left: 1.2rem; padding-right: 1.2rem; padding-top: 0.7rem; padding-bottom: 0.7rem"> 
-                    send
-                </.button>
-                <.input 
-                    name="new_message" 
-                    value={@new_message} 
-                    placeholder="Your message..."
-                    autocomplete="off"
-                    style="width: 55ch; margin: 0.5rem; font-size: 1rem; line-height: 1.5rem"
-                    autofocus
-                />
+  <ul id="messages" phx-update="append" class="mb-16">
+    <%= for message <- @messages do %>
+      <li
+        id={message.id}
+        class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
+      >
+        <p class="text-gray-800 line-clamp-2 break-words"><%= message.text %></p>
+        <%= if message.sender == :bot && length(message.fragments) > 0 do %>
+          <div class="pt-2">
+            <input class="accordion-input" type="checkbox" id={"accordion-#{message.id}"} />
+            <label class="accordion-label text-gray-500 hover:text-gray-700" for={"accordion-#{message.id}"}>
+              See what documentation this is based on
+            </label>
+            <div class="accordion-content text-gray-500">
+              <%= for fragment <- message.fragments do %>
+                <p class="accordion-fragment pt-4">
+                  <%= fragment.fragment_text %>
+                </p>
+              <% end %>
             </div>
-        </.form>
-    </div>
+          </div>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+
+  <div class="fixed bottom-0 pb-14 pt-4 bg-white max-w-prose">
+    <.form for={%{}} phx-change="message_change" phx-submit="send_message" style="width: 65ch">
+      <div class="flex flex-row items-center bg-teal-0">
+        <.button style="margin: 0.5rem; padding-left: 1.2rem; padding-right: 1.2rem; padding-top: 0.7rem; padding-bottom: 0.7rem">
+          send
+        </.button>
+        <.input
+          name="new_message"
+          value={@new_message}
+          placeholder="Your message..."
+          autocomplete="off"
+          style="width: 55ch; margin: 0.5rem; font-size: 1rem; line-height: 1.5rem"
+          autofocus
+        />
+      </div>
+    </.form>
+  </div>
 </div>

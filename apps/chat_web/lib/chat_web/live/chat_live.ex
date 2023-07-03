@@ -1,4 +1,5 @@
 defmodule ChatWeb.ChatLive do
+  require Logger
   use ChatWeb, :live_view
 
   alias ChatWeb.Message
@@ -25,7 +26,7 @@ defmodule ChatWeb.ChatLive do
   defp process_user_message(message_text) do
     Task.async(fn ->
       case ChatWeb.BotFacade.send(message_text) do
-        {:ok, response} -> {:bot_message, response}
+        {:ok, response, fragments} -> {:bot_message, response, fragments}
         {:error, err} -> {:bot_error, err}
       end
     end)
@@ -40,8 +41,8 @@ defmodule ChatWeb.ChatLive do
     {:noreply, assign(socket, messages: new_messages)}
   end
 
-  def handle_info({_ref, {:bot_message, message_text}}, socket) do
-    new_messages = [Message.bot_message(message_text) | socket.assigns.messages]
+  def handle_info({_ref, {:bot_message, message_text, fragments}}, socket) do
+    new_messages = [Message.bot_message(message_text, fragments) | socket.assigns.messages]
     {:noreply, assign(socket, messages: new_messages)}
   end
 end
