@@ -28,7 +28,7 @@ defmodule ElixirChatbotCore.MixProject do
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
       # {:sibling_app_in_umbrella, in_umbrella: true}
-      {:hnswlib, git: "https://github.com/elixir-nx/hnswlib.git"},
+      {:hnswlib, "~> 0.1.0"},
       {:nx, "~> 0.5.3"},
       {:bumblebee, "~> 0.3.0"},
       {:exla, ">= 0.0.0"},
