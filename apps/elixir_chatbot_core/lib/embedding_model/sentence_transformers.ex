@@ -1,7 +1,8 @@
 defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
+  require Logger
   alias ElixirChatbotCore.EmbeddingModel.SentenceTransformers
   import Nx.Defn
-  defstruct [:runner, :embedding_size, :run_many]
+  defstruct [:embedding_size, :serving]
 
   @base_path "sentence-transformers"
 
@@ -19,79 +20,83 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
     out_shape = Axon.get_output_shape(model, input_template)
     {_, embedding_size} = out_shape.pooled_state
 
-    {_, predict_function} = Axon.build(model)
+    serving =
+      Nx.Serving.new(fn opts ->
+        runner = Nx.Defn.jit(&runner/3)
+        {_, predict_fun} = Axon.build(model, opts)
 
-    postprocess =
-      Nx.Defn.compile(&postprocess/1, [Nx.template(out_shape.pooled_state, :f32)], compiler: EXLA)
+        fn input ->
+          {input, _} =
+            Nx.LazyContainer.traverse(input, nil, fn template, t, _ ->
+              if Nx.rank(template) > 2 do
+                {Nx.flatten(t.(), axes: [0, 1]), nil}
+              else
+                {t.(), nil}
+              end
+            end)
 
-    runner = fn tokens ->
-      inputs = Bumblebee.apply_tokenizer(tokenizer, tokens)
+          res = runner.(predict_fun, params, input)
 
-      res =
-        predict_function.(params, inputs).pooled_state
-        |> postprocess.()
-
-      {:ok, res}
-    end
-
-    run_many = fn texts ->
-      inputs = Bumblebee.apply_tokenizer(tokenizer, texts)
-
-      {num_of_inputs, len} = Nx.shape(Map.get(inputs, "attention_mask"))
-
-      remainder = rem(len, chunk_size)
-      pad_length = rem(chunk_size - remainder, chunk_size)
-
-      inputs =
-        inputs
-        |> Enum.map(fn {k, v} -> {k, Nx.pad(v, 0, [{0, 0, 0}, {0, pad_length, 0}])} end)
-        |> Map.new()
-
-
-      0..(num_of_inputs - 1)
-      |> Stream.map(fn i ->
-        transformed_input =
-          inputs |> Enum.map(fn {k, v} -> {k, Nx.stack([v[i]])} end) |> Map.new()
-
-        predict_function.(params, transformed_input).pooled_state
-        |> postprocess.()
+          res.pooled_state
+        end
       end)
-    end
+      |> Nx.Serving.client_preprocessing(fn input ->
+        input = Bumblebee.apply_tokenizer(tokenizer, input)
+
+        {input, _} =
+          Nx.LazyContainer.traverse(input, nil, fn template, tensor, _ ->
+            {_, len} = Nx.shape(template)
+            remainder = rem(len, chunk_size)
+
+            t =
+              if remainder == 0 do
+                tensor.()
+              else
+                pad_amount = chunk_size - remainder
+                Nx.pad(tensor.(), 0, [{0, 0, 0}, {0, pad_amount, 0}])
+              end
+
+            {t, nil}
+          end)
+
+        batch = Nx.Batch.stack([input])
+
+        {batch, nil}
+      end)
 
     %SentenceTransformers{
-      runner: runner,
-      embedding_size: embedding_size,
-      run_many: run_many
+      serving: serving,
+      embedding_size: embedding_size
     }
   end
 
-  defnp postprocess(tokens) do
-    Nx.squeeze(tokens)
+  defnp runner(predict_fn, params, input) do
+    predict_fn.(params, input)
   end
 
   def generate_embedding(
         %SentenceTransformers{
-          runner: runner
+          serving: serving
         },
         text
       ) do
-    runner.(text)
+    Nx.Serving.run(serving, [text])
+    |> Nx.squeeze()
   end
 
-  def generate_many(%SentenceTransformers{run_many: run_many}, texts) do
-    run_many.(texts)
+  def generate_many(%SentenceTransformers{serving: serving}, texts) do
+    Nx.Serving.run(serving, texts)
   end
 
   defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: SentenceTransformers do
     @impl true
-    @spec generate_embedding(%SentenceTransformers{}, String.t()) ::
-            {:ok, Nx.Tensor.t()} | {:error, String.t()}
+    @spec generate_embedding(%SentenceTransformers{}, String.t()) :: Nx.Tensor.t()
     def generate_embedding(model, text) do
       SentenceTransformers.generate_embedding(model, text)
     end
 
     @impl true
-    @spec generate_many(%SentenceTransformers{}, [String.t()]) :: Enumerable.t(Nx.Tensor.t())
+    @spec generate_many(%SentenceTransformers{}, [String.t()]) :: Nx.Tensor.t()
     def generate_many(model, texts) do
       SentenceTransformers.generate_many(model, texts)
     end

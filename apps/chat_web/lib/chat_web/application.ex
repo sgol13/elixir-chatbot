@@ -13,9 +13,8 @@ defmodule ChatWeb.Application do
       # Start the Telemetry supervisor
       ChatWeb.Telemetry,
       ElixirChatbotCore.DocumentationDatabase.child_spec(nil),
-      ElixirChatbotCore.GenerationModel.child_spec(nil),
       ChatWeb.IndexServer.child_spec(nil),
-
+      ElixirChatbotCore.GenerationModel.child_spec(nil),
       # Start the PubSub system
       # This needs to be removed when we add PubSub to another Umbrella app
       {Phoenix.PubSub, name: ChatWeb.PubSub},

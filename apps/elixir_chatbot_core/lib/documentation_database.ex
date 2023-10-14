@@ -42,7 +42,7 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
     GenServer.call(__MODULE__, {:add, documentation_fragment})
   end
 
-  @spec get(non_neg_integer()) :: DocumentationFragment.DocumentationFragment.t()
+  @spec get(non_neg_integer()) :: DocumentationFragment.DocumentationFragment.t() | nil
   def get(id) do
     GenServer.call(__MODULE__, {:get, id})
   end
