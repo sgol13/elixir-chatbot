@@ -99,8 +99,8 @@ config :phoenix, :json_library, Jason
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
 
-config :nx, :default_backend, {EXLA.Backend, []}
-config :nx, :default_defn_options, compiler: EXLA
+config :nx, :default_backend, {EXLA.Backend, [client: :host]}
+config :nx, :default_defn_options, compiler: EXLA, client: :host
 config :exla, :clients,
   host: [platform: :host],
   cuda: [platform: :cuda],
