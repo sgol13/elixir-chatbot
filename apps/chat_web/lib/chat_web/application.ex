@@ -6,15 +6,21 @@ defmodule ChatWeb.Application do
   use Application
 
   @default_embedding_model "paraphrase-MiniLM-L6-v2"
+  @default_generation_model {:hf, "stabilityai/stablelm-tuned-alpha-3b"}
 
   @impl true
   def start(_type, _args) do
+    {model, child_spec} =
+      ElixirChatbotCore.GenerationModel.HuggingfaceModel.new(@default_generation_model)
+      |> ElixirChatbotCore.GenerationModel.HuggingfaceModel.serve(GenerationModel)
+
     children = [
       # Start the Telemetry supervisor
       ChatWeb.Telemetry,
       ElixirChatbotCore.DocumentationDatabase.child_spec(nil),
       ChatWeb.IndexServer.child_spec(nil),
-      ElixirChatbotCore.GenerationModel.child_spec(nil),
+      child_spec,
+      {ChatWeb.BotFacade, model},
       # Start the PubSub system
       # This needs to be removed when we add PubSub to another Umbrella app
       {Phoenix.PubSub, name: ChatWeb.PubSub},
