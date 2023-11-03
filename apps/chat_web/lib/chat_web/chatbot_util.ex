@@ -29,7 +29,9 @@ defmodule ChatWeb.ChatbotUtil do
   end
 
   def lookup_question(question_text) do
-    IndexServer.lookup(question_text)
+    {:ok, res} = IndexServer.lookup(question_text)
+
+    res
     |> Nx.to_flat_list()
     |> Enum.map(&ElixirChatbotCore.DocumentationDatabase.get/1)
   end

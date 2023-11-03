@@ -100,6 +100,12 @@ config :phoenix, :json_library, Jason
 import_config "#{config_env()}.exs"
 
 config :nx, :default_backend, {EXLA.Backend, []}
+config :nx, :default_defn_options, compiler: EXLA
+config :exla, :clients,
+  host: [platform: :host],
+  cuda: [platform: :cuda],
+  rocm: [platform: :rocm],
+  tpu: [platform: :tpu]
 
 config :chat_web,
   database_path: Path.expand("tmp/db-#{config_env()}"),

@@ -1,9 +1,10 @@
 defmodule ElixirChatbotCore.SimilarityIndex do
+  require Logger
   alias ElixirChatbotCore.SimilarityIndex
   alias ElixirChatbotCore.EmbeddingModel
   defstruct [:index, :embedding_model]
 
-  @max_elements 100_000
+  @max_elements 10_000
 
   @spec save_index(
           %ElixirChatbotCore.SimilarityIndex{
@@ -62,14 +63,8 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   def add(index, id, text) do
     %SimilarityIndex{index: index, embedding_model: embedding_model} = index
 
-    case EmbeddingModel.EmbeddingModel.generate_embedding(embedding_model, text) do
-      {:ok, embedding} ->
-        :ok = HNSWLib.Index.add_items(index, Nx.stack([embedding]), ids: Nx.tensor([id]))
-        :ok
-
-      err ->
-        err
-    end
+    embedding = EmbeddingModel.EmbeddingModel.generate_embedding(embedding_model, text)
+    HNSWLib.Index.add_items(index, Nx.stack([embedding]), ids: Nx.tensor([id]))
   end
 
   @spec add_many(
@@ -84,14 +79,15 @@ defmodule ElixirChatbotCore.SimilarityIndex do
 
     {ids, texts} = Enum.unzip(entries)
 
-    embeddings =
-      EmbeddingModel.EmbeddingModel.generate_many(embedding_model, texts)
-      |> Enum.to_list()
-      |> Nx.stack()
+    embeddings = EmbeddingModel.EmbeddingModel.generate_many(embedding_model, texts)
 
     ids = Nx.tensor(ids)
 
-    HNSWLib.Index.add_items(index, embeddings, ids: ids)
+    res = HNSWLib.Index.add_items(index, embeddings, ids: ids)
+
+    Nx.backend_deallocate({ids, embeddings})
+
+    res
   end
 
   @spec lookup(
@@ -99,20 +95,16 @@ defmodule ElixirChatbotCore.SimilarityIndex do
             :embedding_model => EmbeddingModel.EmbeddingModel.t(),
             :index => %HNSWLib.Index{dim: any, reference: any, space: any}
           },
-          binary,
-          keyword
+          String.t(),
+          keyword()
         ) :: {:ok, Nx.Tensor.t()} | {:error, String.t()}
   def lookup(index, text, opts \\ []) do
     %SimilarityIndex{index: index, embedding_model: embedding_model} = index
     k = Keyword.get(opts, :k, 3)
 
-    case EmbeddingModel.EmbeddingModel.generate_embedding(embedding_model, text) do
-      {:ok, embedding} ->
-        {:ok, labels, _dists} = HNSWLib.Index.knn_query(index, embedding, k: k)
-        labels
+    embedding = EmbeddingModel.EmbeddingModel.generate_embedding(embedding_model, text)
 
-      err ->
-        err
-    end
+    {:ok, labels, _dists} = HNSWLib.Index.knn_query(index, embedding, k: k)
+    {:ok, labels}
   end
 end

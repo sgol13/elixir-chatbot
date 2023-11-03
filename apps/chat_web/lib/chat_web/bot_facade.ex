@@ -2,6 +2,8 @@ defmodule ChatWeb.BotFacade do
   require Logger
   def send(message) do
     fragments = ChatWeb.ChatbotUtil.lookup_question(message)
+
+    Logger.debug(fragments)
     fragments_text = fragments
     |> Enum.map(fn e -> e.fragment_text end)
     |> Enum.reduce(&<>/2)
