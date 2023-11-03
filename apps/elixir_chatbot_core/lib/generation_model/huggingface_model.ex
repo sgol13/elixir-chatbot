@@ -3,23 +3,23 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
   alias ElixirChatbotCore.GenerationModel.HuggingfaceModel
   alias ElixirChatbotCore.GenerationModel.GenerationModel
 
-  defstruct [:type, :serving, :name]
+  defstruct [:serving_type, :serving, :name, :output_type]
 
-  @spec new(Bumblebee.repository()) :: %HuggingfaceModel{}
-  def new(repository) do
-    serving = load_model(repository)
+  @spec new(Bumblebee.repository(), keyword()) :: %HuggingfaceModel{}
+  def new(repository, opts \\ []) do
+    {output_type, serving} = load_model(repository, opts)
     Logger.info("Generation model loaded.")
-    %__MODULE__{serving: serving, type: :inline}
+    %__MODULE__{serving: serving, serving_type: :inline, output_type: output_type}
   end
 
   @spec serve(%HuggingfaceModel{}, atom(), keyword()) ::
           {%HuggingfaceModel{}, {module(), term()}}
-  def serve(%__MODULE__{serving: serving}, name, opts \\ []) do
+  def serve(%__MODULE__{serving: serving, output_type: output_type}, name, opts \\ []) do
     options =
       Keyword.merge([name: name, serving: serving, batch_size: 1, batch_timeout: 300_000], opts)
 
     spec = {Nx.Serving, options}
-    model = %__MODULE__{name: name, type: :stateful}
+    model = %__MODULE__{name: name, serving_type: :stateful, output_type: output_type}
     {model, spec}
   end
 
@@ -28,31 +28,48 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
     def generate(model, prompt, _metadata) do
       res =
         case model do
-          %HuggingfaceModel{type: :stateful, name: name} ->
+          %HuggingfaceModel{serving_type: :stateful, name: name} ->
             Nx.Serving.batched_run(name, prompt)
 
-          %HuggingfaceModel{type: :inline, serving: serving} ->
+          %HuggingfaceModel{serving_type: :inline, serving: serving} ->
             Nx.Serving.run(serving, prompt)
         end
 
-      %{results: [%{text: generated_text}]} = res
+      %HuggingfaceModel{output_type: output_type} = model
 
-      generated_text
+      case output_type do
+        :text ->
+          %{results: [%{text: generated_text}]} = res
+          {:text, generated_text}
+        :stream ->
+          {:stream, res}
+      end
     end
   end
 
-  defp load_model(repository) do
+  defp load_model(repository, opts \\ []) do
+    load_model_opts = Keyword.get(opts, :load_model_opts, [])
+    load_tokenizer_opts = Keyword.get(opts, :load_tokenizer_opts, [])
+    load_generation_config_opts = Keyword.get(opts, :load_generation_config_opts, [])
+    configure_opts = Keyword.get(opts, :configure_opts, [])
+    generation_opts = Keyword.get(opts, :generation)
+
+
     Logger.info("Loading model #{inspect(repository)}.")
-    {:ok, model_info} = Bumblebee.load_model(repository)
+    {:ok, model_info} = Bumblebee.load_model(repository, load_model_opts)
     Logger.info("Loading tokenizer.")
-    {:ok, tokenizer} = Bumblebee.load_tokenizer(repository)
+    {:ok, tokenizer} = Bumblebee.load_tokenizer(repository, load_tokenizer_opts)
     Logger.info("Loading config.")
-    {:ok, generation_config} = Bumblebee.load_generation_config(repository)
+    {:ok, generation_config} = Bumblebee.load_generation_config(repository, load_generation_config_opts)
 
-    generation_config = Bumblebee.configure(generation_config, max_new_tokens: 100)
+    generation_config = Bumblebee.configure(generation_config, configure_opts)
 
-    Bumblebee.Text.generation(model_info, tokenizer, generation_config,
-      compile: [batch_size: 1, sequence_length: 512]
-    )
+    type = if Keyword.get(generation_opts, :stream) do
+      :stream
+    else
+      :text
+    end
+
+    {type, Bumblebee.Text.generation(model_info, tokenizer, generation_config, generation_opts)}
   end
 end
