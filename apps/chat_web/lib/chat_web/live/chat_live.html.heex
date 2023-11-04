@@ -5,7 +5,10 @@
         id={message.id}
         class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
       >
-        <p class="text-gray-800 line-clamp-2 break-words"><%= message.text %></p>
+        <p class="text-gray-800 line-clamp-2 break-words">
+          <%= message.text |> Earmark.as_html!() |> raw() %>
+        </p>
+        
         <%= if message.sender == :bot && length(message.fragments) > 0 do %>
           <div class="pt-2">
             <input class="accordion-input" type="checkbox" id={"accordion-#{message.id}"} />
