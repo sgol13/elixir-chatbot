@@ -6,6 +6,7 @@ defmodule ChatWeb.BotFacade do
     GenServer.start_link(__MODULE__, model, name: __MODULE__)
   end
 
+  @impl true
   def init(model) do
     {:ok, model}
   end
@@ -14,10 +15,6 @@ defmodule ChatWeb.BotFacade do
           {:ok, String.t(), [%ElixirChatbotCore.DocumentationManager.DocumentationFragment{}]}
           | {:error, String.t()}
   def generate(message) do
-    GenServer.call(__MODULE__, {:generate, message}, 300_000)
-  end
-
-  def handle_call({:generate, message}, _from, model) do
     fragments = ChatWeb.ChatbotUtil.lookup_question(message)
 
     fragments_text =
@@ -27,11 +24,18 @@ defmodule ChatWeb.BotFacade do
       |> Enum.join("\n")
 
     question = String.replace(message, ~r/\?+$/, "")
+
     prompt =
       "<|USER|>#{fragments_text}\nIn the Elixir programming language, #{question}?<|ASSISTANT|>"
 
+    model = GenServer.call(__MODULE__, :get_model)
     response = ElixirChatbotCore.GenerationModel.GenerationModel.generate(model, prompt, %{})
 
-    {:reply, {:ok, response, fragments}, model}
+    {:ok, response, fragments}
+  end
+
+  @impl true
+  def handle_call(:get_model, _from, model) do
+    {:reply, model, model}
   end
 end

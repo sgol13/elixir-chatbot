@@ -1,0 +1,28 @@
+<div>
+  <%= for {id, message} <- @messages |> Enum.sort_by(fn {_, message} -> message.timestamp end, :asc) do %>
+    <li
+      id={id}
+      class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
+    >
+      <p class="text-gray-800 line-clamp-2 break-words"><%= message.text %></p>
+      <%= if message.sender == :bot && length(message.fragments) > 0 do %>
+        <div class="pt-2">
+          <input class="accordion-input" type="checkbox" id={"accordion-#{id}"} />
+          <label
+            class="accordion-label text-gray-500 hover:text-gray-700"
+            for={"accordion-#{id}"}
+          >
+            See what documentation this is based on
+          </label>
+          <div class="accordion-content text-gray-500">
+            <%= for fragment <- message.fragments do %>
+              <p class="accordion-fragment pt-4">
+                <%= fragment.fragment_text %>
+              </p>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </li>
+  <% end %>
+</div>

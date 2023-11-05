@@ -52,7 +52,7 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
     load_tokenizer_opts = Keyword.get(opts, :load_tokenizer_opts, [])
     load_generation_config_opts = Keyword.get(opts, :load_generation_config_opts, [])
     configure_opts = Keyword.get(opts, :configure_opts, [])
-    generation_opts = Keyword.get(opts, :generation)
+    generation_opts = Keyword.get(opts, :generation_opts)
 
 
     Logger.info("Loading model #{inspect(repository)}.")
