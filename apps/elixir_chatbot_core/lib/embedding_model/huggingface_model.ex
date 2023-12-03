@@ -1,15 +1,12 @@
-defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
+defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
   require Logger
-  alias ElixirChatbotCore.EmbeddingModel.SentenceTransformers
+  alias ElixirChatbotCore.EmbeddingModel.HuggingfaceModel
   import Nx.Defn
   defstruct [:embedding_size, :serving]
 
-  @base_path "sentence-transformers"
-
   def new(model_name, chunk_size) do
-    ref = "#{@base_path}/#{model_name}"
-    {:ok, %{model: model, params: params}} = Bumblebee.load_model({:hf, ref})
-    {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, ref})
+    {:ok, %{model: model, params: params}} = Bumblebee.load_model({:hf, model_name})
+    {:ok, tokenizer} = Bumblebee.load_tokenizer({:hf, model_name})
 
     input_template = %{
       "attention_mask" => Nx.template({1, 42}, :u32),
@@ -64,7 +61,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
         {batch, nil}
       end)
 
-    %SentenceTransformers{
+    %HuggingfaceModel{
       serving: serving,
       embedding_size: embedding_size
     }
@@ -75,7 +72,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
   end
 
   def generate_embedding(
-        %SentenceTransformers{
+        %HuggingfaceModel{
           serving: serving
         },
         text
@@ -84,26 +81,26 @@ defmodule ElixirChatbotCore.EmbeddingModel.SentenceTransformers do
     |> Nx.squeeze()
   end
 
-  def generate_many(%SentenceTransformers{serving: serving}, texts) do
+  def generate_many(%HuggingfaceModel{serving: serving}, texts) do
     Nx.Serving.run(serving, texts)
   end
 
-  defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: SentenceTransformers do
+  defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: HuggingfaceModel do
     @impl true
-    @spec generate_embedding(%SentenceTransformers{}, String.t()) :: Nx.Tensor.t()
+    @spec generate_embedding(%HuggingfaceModel{}, String.t()) :: Nx.Tensor.t()
     def generate_embedding(model, text) do
-      SentenceTransformers.generate_embedding(model, text)
+      HuggingfaceModel.generate_embedding(model, text)
     end
 
     @impl true
-    @spec generate_many(%SentenceTransformers{}, [String.t()]) :: Nx.Tensor.t()
+    @spec generate_many(%HuggingfaceModel{}, [String.t()]) :: Nx.Tensor.t()
     def generate_many(model, texts) do
-      SentenceTransformers.generate_many(model, texts)
+      HuggingfaceModel.generate_many(model, texts)
     end
 
     @impl true
-    @spec get_embedding_dimension(%SentenceTransformers{}) :: non_neg_integer()
-    def get_embedding_dimension(%SentenceTransformers{embedding_size: embedding_size}) do
+    @spec get_embedding_dimension(%HuggingfaceModel{}) :: non_neg_integer()
+    def get_embedding_dimension(%HuggingfaceModel{embedding_size: embedding_size}) do
       embedding_size
     end
   end

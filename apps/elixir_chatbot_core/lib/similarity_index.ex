@@ -16,7 +16,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
     HNSWLib.Index.save_index(index, path)
   end
 
-  @spec load_index(String.t(), EmbeddingModel.EmbeddingModel.t()) ::
+  @spec load_index(String.t(), EmbeddingModel.EmbeddingModel.t(), :cosine | :ip | :l2) ::
           %ElixirChatbotCore.SimilarityIndex{
             embedding_model: EmbeddingModel.EmbeddingModel.t(),
             index: %HNSWLib.Index{
@@ -25,10 +25,10 @@ defmodule ElixirChatbotCore.SimilarityIndex do
               space: :cosine | :ip | :l2
             }
           }
-  def load_index(path, embedding_model) do
+  def load_index(path, embedding_model, similarity_metrics) do
     {:ok, index} =
       HNSWLib.Index.load_index(
-        :l2,
+        similarity_metrics,
         EmbeddingModel.EmbeddingModel.get_embedding_dimension(embedding_model),
         path,
         max_elements: @max_elements
@@ -37,14 +37,15 @@ defmodule ElixirChatbotCore.SimilarityIndex do
     %SimilarityIndex{index: index, embedding_model: embedding_model}
   end
 
-  @spec create_model(EmbeddingModel.EmbeddingModel.t()) :: %ElixirChatbotCore.SimilarityIndex{
+  @spec create_model(EmbeddingModel.EmbeddingModel.t(), :cosine | :ip | :l2) ::
+      %ElixirChatbotCore.SimilarityIndex{
           embedding_model: EmbeddingModel.EmbeddingModel.t(),
           index: %HNSWLib.Index{dim: non_neg_integer, reference: any, space: :cosine | :ip | :l2}
         }
-  def create_model(embedding_model) do
+  def create_model(embedding_model, similarity_metrics) do
     {:ok, index} =
       HNSWLib.Index.new(
-        :l2,
+        similarity_metrics,
         EmbeddingModel.EmbeddingModel.get_embedding_dimension(embedding_model),
         @max_elements
       )

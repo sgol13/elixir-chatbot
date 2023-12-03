@@ -5,22 +5,31 @@ defmodule ChatWeb.Application do
 
   use Application
 
-  @default_embedding_model "paraphrase-MiniLM-L6-v2"
+  @default_docs_db_name "test"
+
+  @default_embedding_model "sentence-transformers/paraphrase-MiniLM-L6-v2"
+  @default_similarity_metrics :l2
+
   @default_generation_model {:hf, "stabilityai/stablelm-tuned-alpha-3b"}
 
   @impl true
   def start(_type, _args) do
-    {model, child_spec} =
+    {generation_model, child_spec} =
       ElixirChatbotCore.GenerationModel.HuggingfaceModel.new(@default_generation_model)
       |> ElixirChatbotCore.GenerationModel.HuggingfaceModel.serve(GenerationModel)
+
+    embedding_params = %{
+      embedding_model: @default_embedding_model,
+      similarity_metrics: @default_similarity_metrics
+    }
 
     children = [
       # Start the Telemetry supervisor
       ChatWeb.Telemetry,
-      ElixirChatbotCore.DocumentationDatabase.child_spec(nil),
-      ChatWeb.IndexServer.child_spec(nil),
+      ElixirChatbotCore.DocumentationDatabase.child_spec(@default_docs_db_name),
+      ElixirChatbotCore.IndexServer.child_spec(embedding_params, @default_docs_db_name),
       child_spec,
-      {ChatWeb.BotFacade, model},
+      {ChatWeb.BotFacade, generation_model},
       # Start the PubSub system
       # This needs to be removed when we add PubSub to another Umbrella app
       {Phoenix.PubSub, name: ChatWeb.PubSub},
@@ -44,6 +53,4 @@ defmodule ChatWeb.Application do
     ChatWeb.Endpoint.config_change(changed, removed)
     :ok
   end
-
-  def default_embedding_model(), do: @default_embedding_model
 end

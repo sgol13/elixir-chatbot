@@ -27,3 +27,4 @@ erl_crash.dump
 .elixir_ls/
 
 manual_tests/responses/*
+apps/tests/**

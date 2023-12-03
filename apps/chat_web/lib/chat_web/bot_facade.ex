@@ -18,7 +18,7 @@ defmodule ChatWeb.BotFacade do
   end
 
   def handle_call({:generate, message}, _from, model) do
-    fragments = ChatWeb.ChatbotUtil.lookup_question(message)
+    fragments = lookup_question(message)
 
     fragments_text =
       fragments
@@ -33,5 +33,13 @@ defmodule ChatWeb.BotFacade do
     response = ElixirChatbotCore.GenerationModel.GenerationModel.generate(model, prompt, %{})
 
     {:reply, {:ok, response, fragments}, model}
+  end
+
+  def lookup_question(question_text) do
+    {:ok, res} = ElixirChatbotCore.IndexServer.lookup(question_text)
+
+    res
+    |> Nx.to_flat_list()
+    |> Enum.map(&ElixirChatbotCore.DocumentationDatabase.get/1)
   end
 end
