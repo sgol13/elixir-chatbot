@@ -1,4 +1,4 @@
-# EmbeddingTests
+# Tests
 
 **TODO: Add description**
 

@@ -107,8 +107,8 @@ config :exla, :clients,
   rocm: [platform: :rocm],
   tpu: [platform: :tpu]
 
-config :chat_web,
-  database_path: Path.expand("tmp/db-#{config_env()}"),
-  hnsw_index_path: Path.expand("tmp/index-#{config_env()}"),
+config :chatbot,
+  database_path: Path.expand("../../tmp/db"),
+  hnsw_index_path: Path.expand("../../tmp/index"),
   hnsw_data_import_batch_size: 4,
   hnsw_data_import_padding_chunk_size: 64

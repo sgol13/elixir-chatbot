@@ -1,5 +1,6 @@
 defmodule ElixirChatbotCore.DocumentationDatabase do
   alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
+  require Logger
 
   use GenServer
 
@@ -7,16 +8,18 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
     GenServer.start_link(__MODULE__, path, name: __MODULE__)
   end
 
-  def child_spec(_) do
+  def child_spec(docs_db_name) do
+    path = create_docs_db_path(docs_db_name)
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [Application.fetch_env!(:chat_web, :database_path)]},
+      start: {__MODULE__, :start_link, [path]},
       type: :worker
     }
   end
 
   @impl true
   def init(path) do
+    Logger.info("Starting docs database at #{path}")
     CubDB.start_link(path)
   end
 
@@ -49,5 +52,9 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
 
   def get_all() do
     GenServer.call(__MODULE__, :get_all)
+  end
+
+  defp create_docs_db_path(docs_db_name) do
+    "#{Application.fetch_env!(:chatbot, :database_path)}-#{docs_db_name}"
   end
 end
