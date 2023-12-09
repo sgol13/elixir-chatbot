@@ -26,4 +26,5 @@ erl_crash.dump
 /config/*.secret.exs
 .elixir_ls/
 
-apps/tests/data/**
+manual_tests/responses/*
+apps/tests/**

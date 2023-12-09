@@ -29,7 +29,7 @@ defmodule ChatWeb.Application do
       ElixirChatbotCore.DocumentationDatabase.child_spec(@default_docs_db_name),
       ElixirChatbotCore.IndexServer.child_spec(embedding_params, @default_docs_db_name),
       child_spec,
-      {ElixirChatbotCore.Chatbot, generation_model},
+      {ChatWeb.BotFacade, generation_model},
       # Start the PubSub system
       # This needs to be removed when we add PubSub to another Umbrella app
       {Phoenix.PubSub, name: ChatWeb.PubSub},

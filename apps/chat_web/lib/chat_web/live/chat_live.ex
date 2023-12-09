@@ -25,7 +25,7 @@ defmodule ChatWeb.ChatLive do
 
   defp process_user_message(message_text) do
     Task.async(fn ->
-      case ElixirChatbotCore.Chatbot.generate(message_text) do
+      case ChatWeb.BotFacade.generate(message_text) do
         {:ok, response, fragments} -> {:bot_message, response, fragments}
         {:error, err} -> {:bot_error, err}
       end
