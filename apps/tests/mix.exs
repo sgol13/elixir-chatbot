@@ -3,7 +3,7 @@ defmodule Tests.MixProject do
 
   def project do
     [
-      app: :embedding_tests,
+      app: :tests,
       version: "0.1.0",
       build_path: "../../_build",
       config_path: "../../config/config.exs",

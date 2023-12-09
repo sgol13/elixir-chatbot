@@ -1,4 +1,4 @@
-defmodule ChatWeb.BotFacade do
+defmodule ElixirChatbotCore.Chatbot do
   require Logger
   use GenServer
 
