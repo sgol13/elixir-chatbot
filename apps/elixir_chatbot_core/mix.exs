@@ -32,7 +32,8 @@ defmodule ElixirChatbotCore.MixProject do
       {:nx, "~> 0.6.1"},
       {:bumblebee, "~> 0.4.1"},
       {:exla, "~> 0.6.1"},
-      {:cubdb, " ~> 2.0.2"}
+      {:cubdb, " ~> 2.0.2"},
+      {:httpoison, "~> 2.0"}
     ]
   end
 end
