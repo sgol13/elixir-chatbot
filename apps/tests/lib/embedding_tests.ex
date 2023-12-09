@@ -5,7 +5,7 @@ defmodule Tests.EmbeddingTests do
   alias Tests.TestSupervisor
   require Logger
 
-  @results_file_path "results/"
+  @output_path "data/embedding_out/"
 
   def run() do
     [
@@ -94,7 +94,7 @@ defmodule Tests.EmbeddingTests do
     }
 
     json_string = Jason.encode!(content)
-    filename = "#{@results_file_path}/#{generate_output_name()}.json"
+    filename = "#{@output_path}/#{generate_output_name()}.json"
     File.write!(filename, json_string)
   end
 

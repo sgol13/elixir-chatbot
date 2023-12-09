@@ -4,14 +4,16 @@
 #   ies -S mix
 #   c("manual_tests/bot_manual_tests.ex")
 #
-#   BotManualTests.run() - run the script using default files questions_1.txt and responses_1.html
+#   Tests.AnswersTests.run() - run the script using default files questions_1.txt and responses_1.html
 #
-#   BotManualTests.run("questions_2.txt", "responses_2.html") - run the script using custom files
+#   Tests.AnswersTests.run("questions_2.txt", "responses_2.html") - run the script using custom files
 
-defmodule BotManualTests do
+defmodule Tests.AnswersTests do
+  alias Tests.TestSupervisor
+  alias ElixirChatbotCore.Chatbot
 
-  @questions_dir "manual_tests/questions/"
-  @responses_dir "manual_tests/responses/"
+  @questions_dir "data/answers_in/"
+  @responses_dir "data/answers_out/"
 
   def run do
     run("questions_1.txt", "responses_1.html")
@@ -24,10 +26,16 @@ defmodule BotManualTests do
   end
 
   defp run_with_paths(questions_path, responses_path) do
+    TestSupervisor.terminate_all_children()
+    {:ok, gen_model_pid} = start_generation_model()
+
     output = File.stream!(questions_path)
       |> execute_tests
 
     File.write!(responses_path, output)
+
+    TestSupervisor.terminate_child(gen_model_pid)
+    :ok
   end
 
   defp execute_tests(questions) do
@@ -41,7 +49,7 @@ defmodule BotManualTests do
 
   defp ask_question({question, index}) do
     IO.puts("#{index}: #{question}")
-    {:ok, response, _fragments} = ChatWeb.BotFacade.generate(question)
+    {:ok, response, _fragments} = Chatbot.generate(question)
     {index, question, response}
   end
 
@@ -52,5 +60,9 @@ defmodule BotManualTests do
     <p> #{rendered_response} </p>
     <hr/>
     """
+  end
+
+  defp start_generation_model do
+    {:ok, nil}
   end
 end
