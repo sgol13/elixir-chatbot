@@ -23,7 +23,7 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
         |> Stream.map(fn doc ->
           %__MODULE__{
             type: :module,
-            fragment_text: doc,
+            fragment_text: "Module #{Atom.to_string(module)}\n\n#{doc}",
             source_module: module,
             function_signature: nil
           }
@@ -37,7 +37,7 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
     |> Stream.map(fn doc ->
       %__MODULE__{
         type: :function,
-        fragment_text: "Function #{Atom.to_string(module)}.#{sig}\n\n#{doc}",
+        fragment_text: "#{Atom.to_string(module)}.#{sig}\n\n#{doc}",
         source_module: module,
         function_signature: sig
       }
@@ -73,7 +73,7 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
       nil,
       fn cur, acc ->
         heading_text =
-          if String.starts_with?(cur, String.duplicate("#", current_depth)) do
+          if String.starts_with?(cur, String.duplicate("#", current_depth) <> " ") do
             {_, rest} = String.split_at(cur, current_depth)
             String.trim(rest)
           else
@@ -115,7 +115,7 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
     |> Stream.flat_map(fn {headings, text} ->
       # split texts with regards to subheadings
       if headings_depth == current_depth do
-        {headings, text}
+        [{headings, text}]
       else
         strings_by_headings(
           headings_depth,
@@ -132,7 +132,7 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
     |> Stream.flat_map(fn {headings, text} ->
       # split sections which are too long
       if is_nil(max_token_count) do
-        {headings, text}
+        [{headings, text}]
       else
         string_to_chunks(max_token_count, text)
         |> Stream.map(fn text ->
@@ -147,18 +147,23 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
       |> String.length() > 0
     end)
     |> Stream.map(fn {headings, text} ->
-      if prepend_headings do
-        prepended =
-          headings
-          |> Stream.with_index(1)
-          |> Stream.map(fn {heading, i} ->
-            String.duplicate("#", i) <> " " <> heading
-          end)
-          |> Enum.join("\n\n")
-
-        prepended <> text
+      if current_depth != 1 do
+        {headings, text}
       else
-        text
+        if prepend_headings do
+          IO.inspect(headings)
+          prepended =
+            headings
+            |> Stream.with_index(1)
+            |> Stream.map(fn {heading, i} ->
+              String.duplicate("#", i) <> " " <> heading
+            end)
+            |> Enum.join("\n\n")
+
+          prepended <> "\n\n" <> text
+        else
+          text
+        end
       end
     end)
   end
