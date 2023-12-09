@@ -1,12 +1,35 @@
 defmodule ElixirChatbotCore.DocumentationManager do
   require Logger
+  alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
   alias ElixirChatbotCore.DocumentationManager
 
-  def documentation_fragments(opts \\ []) do
-    max_token_count = Keyword.get(opts, :max_token_count)
+  @spec documentation_fragments(keyword()) ::
+          Enumerable.t(DocumentationFragment.t())
+  @doc """
+  Fetches the available documentation and optionally slices it.
 
-    Stream.flat_map(loaded_modules(), fn module ->
-      doc_chunks(module, max_token_count: max_token_count)
+  Keyword options:
+
+  - `max_token_count: non_neg_integer()` - Approximate count of words after which the fragment will be split into multiple fragments
+  - `headings_split: non_neg_integer()` - Depth of headings for which the documentation will be split, e.g. 1 means it will only be split on h1 headings, 2 means h1 and h2 and so on.
+  - `prepend_parent_heading: boolean()` - Whether to prepend headings of parent sections to fragments when splitting by headings
+  - `allowed_modules: Enumerable.t(atom())` - Modules outside of which documentation should not be fetched
+  """
+  def documentation_fragments(opts \\ []) do
+    allowed_modules = Keyword.get(opts, :allowed_modules)
+
+    loaded_modules()
+    |> Stream.filter(fn module ->
+      Enum.empty?(allowed_modules) || Enum.member?(allowed_modules, module) ||
+        Enum.any?(allowed_modules, fn allowed_module ->
+          String.starts_with?(
+            Atom.to_string(module),
+            "#{Atom.to_string(allowed_module)}."
+          )
+        end)
+    end)
+    |> Stream.flat_map(fn module ->
+      doc_chunks(module, opts)
     end)
   end
 
@@ -26,10 +49,17 @@ defmodule ElixirChatbotCore.DocumentationManager do
 
   defp module_doc(module) do
     case Code.fetch_docs(module) do
-      {:docs_v1, _, _, "text/markdown", module_doc, _, _} -> {:ok, module_doc |> doc_map_to_binary()}
-      {:docs_v1, _, _, _, _, _, _} -> {:ok, :none}
-      {:error, :module_not_found} -> {:error, :module_not_found}
-      {:error, :chunk_not_found} -> {:error, :module_not_found}
+      {:docs_v1, _, _, "text/markdown", module_doc, _, _} ->
+        {:ok, module_doc |> doc_map_to_binary()}
+
+      {:docs_v1, _, _, _, _, _, _} ->
+        {:ok, :none}
+
+      {:error, :module_not_found} ->
+        {:error, :module_not_found}
+
+      {:error, :chunk_not_found} ->
+        {:error, :module_not_found}
     end
   end
 
@@ -41,7 +71,8 @@ defmodule ElixirChatbotCore.DocumentationManager do
          # |> Stream.filter(fn {{type, _, _}, _, _, _, _} -> type == :function end)
          |> Stream.map(fn {_, _, sig, doc, _} -> {sig, doc |> doc_map_to_binary()} end)}
 
-      {:docs_v1, _, _, _, _, _, _} -> {:ok, []}
+      {:docs_v1, _, _, _, _, _, _} ->
+        {:ok, []}
 
       {:error, :module_not_found} ->
         {:error, :module_not_found}
@@ -52,8 +83,6 @@ defmodule ElixirChatbotCore.DocumentationManager do
   end
 
   defp doc_chunks(module, opts) do
-    max_token_count = Keyword.get(opts, :max_token_count)
-
     with {:ok, module_doc} <- module_doc(module),
          {:ok, docs} <- function_docs(module) do
       docstream =
@@ -63,7 +92,7 @@ defmodule ElixirChatbotCore.DocumentationManager do
           DocumentationManager.DocumentationFragment.function_to_fragment(
             module,
             doc,
-            max_token_count
+            opts
           )
         end)
 
@@ -74,7 +103,7 @@ defmodule ElixirChatbotCore.DocumentationManager do
           DocumentationManager.DocumentationFragment.module_to_fragment(
             module,
             module_doc,
-            max_token_count
+            opts
           ),
           docstream
         )
