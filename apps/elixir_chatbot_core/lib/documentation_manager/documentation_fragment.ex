@@ -151,7 +151,6 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
         {headings, text}
       else
         if prepend_headings do
-          IO.inspect(headings)
           prepended =
             headings
             |> Stream.with_index(1)

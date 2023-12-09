@@ -16,7 +16,7 @@ defmodule ElixirChatbotCore.DocumentationManager do
   - `allowed_modules: Enumerable.t(atom())` - Modules outside of which documentation should not be fetched
   """
   def documentation_fragments(opts \\ []) do
-    allowed_modules = Keyword.get(opts, :allowed_modules)
+    allowed_modules = Keyword.get(opts, :allowed_modules, [])
 
     loaded_modules()
     |> Stream.filter(fn module ->
@@ -68,7 +68,6 @@ defmodule ElixirChatbotCore.DocumentationManager do
       {:docs_v1, _, _, "text/markdown", _, _, docs} ->
         {:ok,
          docs
-         # |> Stream.filter(fn {{type, _, _}, _, _, _, _} -> type == :function end)
          |> Stream.map(fn {_, _, sig, doc, _} -> {sig, doc |> doc_map_to_binary()} end)}
 
       {:docs_v1, _, _, _, _, _, _} ->
