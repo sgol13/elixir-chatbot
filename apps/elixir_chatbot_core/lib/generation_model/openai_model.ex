@@ -1,13 +1,15 @@
 defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
+  alias ElixirChatbotCore.GenerationModel.OpenAiModel
+  alias ElixirChatbotCore.GenerationModel.GenerationModel
   require Logger
 
   @openai_completions_url "https://api.openai.com/v1/chat/completions"
   @openai_model_id "gpt-3.5-turbo"
 
-  def run do
-    # generate("What is the capital of Poland?")
-    str = "<|USER|>- Elixir.List.to_tuple(list) # Examples ## Examples     iex> List.to_tuple([:share, [:elixir, 163]])     {:share, [:elixir, 163]} \nIn the Elixir programming language, What is the difference between a list and a tuple in Elixir?<|ASSISTANT|>"
-    generate(str)
+  defstruct []
+
+  def new do
+    %__MODULE__{}
   end
 
   def generate(prompt) do
@@ -15,7 +17,6 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
     body = build_body(prompt)
 
     Logger.info("Open API completion...")
-    IO.inspect(prompt)
     response = HTTPoison.post(@openai_completions_url, body, headers, recv_timeout: 300000)
     Logger.info("Open API completion finished")
 
@@ -26,6 +27,13 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
       {:error, %HTTPoison.Error{reason: reason}} ->
         Logger.error("OpenAI API completion request error: #{reason}")
         :error
+    end
+  end
+
+  defimpl GenerationModel, for: OpenAiModel do
+    @impl true
+    def generate(_model, prompt, _metadata) do
+      OpenAiModel.generate(prompt)
     end
   end
 

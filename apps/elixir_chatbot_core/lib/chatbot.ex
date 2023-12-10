@@ -6,10 +6,10 @@ defmodule ElixirChatbotCore.Chatbot do
     GenServer.start_link(__MODULE__, model, name: __MODULE__)
   end
 
-  def child_spec(_) do
+  def child_spec(model) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [nil]},
+      start: {__MODULE__, :start_link, [model]},
       type: :worker
     }
   end
@@ -38,8 +38,7 @@ defmodule ElixirChatbotCore.Chatbot do
     prompt =
       "<|USER|>#{fragments_text}\nIn the Elixir programming language, #{question}?<|ASSISTANT|>"
 
-    # response = ElixirChatbotCore.GenerationModel.GenerationModel.generate(model, prompt, %{})
-    {:ok, response} = ElixirChatbotCore.GenerationModel.OpenAiModel.generate(prompt)
+    {:ok, response} = ElixirChatbotCore.GenerationModel.GenerationModel.generate(model, prompt, %{})
 
     {:reply, {:ok, response, fragments}, model}
   end

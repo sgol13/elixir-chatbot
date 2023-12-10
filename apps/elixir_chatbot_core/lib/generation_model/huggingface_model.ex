@@ -37,7 +37,7 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
 
       %{results: [%{text: generated_text}]} = res
 
-      generated_text
+      {:ok, generated_text}
     end
   end
 

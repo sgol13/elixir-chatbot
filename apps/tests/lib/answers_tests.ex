@@ -9,17 +9,18 @@
 #   Tests.AnswersTests.run("questions_2.txt", "responses_2.html") - run the script using custom files
 
 defmodule Tests.AnswersTests do
+  alias ElixirChatbotCore.GenerationModel.OpenAiModel
   alias ElixirChatbotCore.DocumentationDatabase
-  alias Tests.TestSupervisor
   alias ElixirChatbotCore.Chatbot
   alias ElixirChatbotCore.IndexServer
+  alias Tests.TestSupervisor
   alias Tests.EmbeddingTestsCase
 
   @questions_dir "data/answers_in/"
   @responses_dir "data/answers_out/"
 
   def run do
-    run("questions_1.txt", "responses_1.html")
+    run("questions_2.txt", "responses_2.html")
   end
 
   def run(questions_file, responses_file) do
@@ -36,7 +37,7 @@ defmodule Tests.AnswersTests do
     }
 
     TestSupervisor.terminate_all_children()
-    {:ok, gen_model_pid} = start_chatbot()
+    {:ok, gen_model_pid} = start_chatbot(OpenAiModel.new())
     {:ok, db_pid} = start_database(test_case)
     {:ok, index_pid} = start_index_server(test_case)
 
@@ -46,6 +47,7 @@ defmodule Tests.AnswersTests do
     File.write!(responses_path, output)
 
     TestSupervisor.terminate_child(gen_model_pid)
+    TestSupervisor.terminate_child(db_pid)
     TestSupervisor.terminate_child(index_pid)
     :ok
   end
@@ -74,8 +76,8 @@ defmodule Tests.AnswersTests do
     """
   end
 
-  defp start_chatbot do
-    ElixirChatbotCore.Chatbot.child_spec(nil)
+  defp start_chatbot(model) do
+    ElixirChatbotCore.Chatbot.child_spec(model)
     |> TestSupervisor.start_child
   end
 
