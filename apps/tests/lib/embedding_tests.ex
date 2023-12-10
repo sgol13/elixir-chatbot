@@ -10,14 +10,9 @@ defmodule Tests.EmbeddingTests do
   def run() do
     [
       %EmbeddingTestsCase{
-        embedding_model: "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        similarity_metrics: :l2,
-        docs_db: "test2"
-      },
-      %EmbeddingTestsCase{
-        embedding_model: "intfloat/multilingual-e5-small",
+        embedding_model: "openai/text-embedding-ada-002",
         similarity_metrics: :cosine,
-        docs_db: "test2"
+        docs_db: "full"
       }
     ]
     |> test_multiple_cases()
@@ -37,6 +32,7 @@ defmodule Tests.EmbeddingTests do
     {:ok, db_pid} = start_database(test_case)
     {:ok, index_pid} = start_index_server(test_case)
 
+    Logger.info("Starting embedding test...")
     accuracy = test_embedding_model()
     Logger.info("Test ended with success rate: #{Float.round(accuracy * 100, 2)}%")
 
@@ -47,8 +43,13 @@ defmodule Tests.EmbeddingTests do
 
   defp test_embedding_model() do
     all = DocumentationDatabase.get_all()
+      |> Enum.to_list
+      |> Enum.take_random(1000)
+      |> Stream.with_index()
 
-    correct = all |> Stream.map(fn {id, fragment} ->
+      correct = all
+      |> Stream.map(fn {{id, fragment}, loop_id} ->
+        ProgressBar.render(loop_id, 1000)
       check_index(create_question(fragment), id)
     end) |> Enum.count(fn result ->
       result == :ok

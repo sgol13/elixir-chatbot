@@ -22,6 +22,8 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
     body = build_body(texts)
     response = HTTPoison.post(@openai_embedding_url, body, headers)
 
+    [text | _] = texts
+    Logger.info("compute #{String.length(text)}")
     case response do
       {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
         {:ok, parse_response(response_body)}
@@ -50,8 +52,10 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
   defp parse_response(response_body) do
     Jason.decode!(response_body)["data"]
     |> Stream.map(&(&1["embedding"]))
-    |> Stream.map(&Nx.tensor(&1))
-    |> Stream.map(&Nx.reshape(&1, {1, elem(Nx.shape(&1), 0)})) # do we need to have [1][1536] shape instead of [1536] ???
     |> Enum.to_list
+    |> Nx.tensor
+    # |> Stream.map(&Nx.tensor(&1))
+    # |> Stream.map(&Nx.reshape(&1, {1, elem(Nx.shape(&1), 0)})) # do we need to have [1][1536] shape instead of [1536] ???
+    # |> Enum.to_list
   end
 end

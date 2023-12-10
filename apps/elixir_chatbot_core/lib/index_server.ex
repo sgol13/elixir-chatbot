@@ -30,7 +30,12 @@ defmodule ElixirChatbotCore.IndexServer do
   @impl true
   def init({path, %{embedding_model: model_name, similarity_metrics: similarity_metrics}}) do
     chunk_size = Application.fetch_env!(:chatbot, :hnsw_data_import_padding_chunk_size)
-    embedding = ElixirChatbotCore.EmbeddingModel.HuggingfaceModel.new(model_name, chunk_size)
+    # embedding = ElixirChatbotCore.EmbeddingModel.HuggingfaceModel.new(model_name, chunk_size)
+    embedding = nil
+
+    unless model_name == "openai/text-embedding-ada-002" do
+      raise "Expected openai model"
+    end
 
     Logger.info("Starting index at #{path}")
 
@@ -67,6 +72,7 @@ defmodule ElixirChatbotCore.IndexServer do
         Logger.info("Saving populated index to disk...")
 
         SimilarityIndex.save_index(index, path)
+        Logger.info("Index saved")
       end
 
       {:ok, index}
