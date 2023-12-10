@@ -5,16 +5,22 @@ defmodule ElixirChatbotCore.IndexServer do
   require Logger
   use GenServer
 
-  def start_link(path, embedding_params) do
-    params = {path, embedding_params}
+  def start_link(path, embedding_params, prepend_to_fragment) do
+    params = {path, embedding_params, prepend_to_fragment}
     GenServer.start_link(__MODULE__, params, name: __MODULE__)
   end
 
-  def child_spec(embedding_params, docs_db_name) do
-    path = create_index_path(docs_db_name, embedding_params.embedding_model)
+  def child_spec(embedding_params, docs_db_name, prepend_to_fragment \\ nil) do
+    path =
+      create_index_path(
+        docs_db_name,
+        embedding_params.embedding_model,
+        embedding_params.similarity_metrics
+      )
+
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [path, embedding_params]},
+      start: {__MODULE__, :start_link, [path, embedding_params, prepend_to_fragment]},
       type: :worker
     }
   end
@@ -24,11 +30,18 @@ defmodule ElixirChatbotCore.IndexServer do
   end
 
   def lookup(text) do
-    GenServer.call(__MODULE__, {:lookup, text}, 100_000)
+    GenServer.call(__MODULE__, {:lookup, text}, :infinity)
+  end
+
+  def lookup(text, k) do
+    GenServer.call(__MODULE__, {:lookup, text, k}, :infinity)
   end
 
   @impl true
-  def init({path, %{embedding_model: model_name, similarity_metrics: similarity_metrics}}) do
+  def init(
+        {path, %{embedding_model: model_name, similarity_metrics: similarity_metrics},
+         prepend_to_fragment}
+      ) do
     chunk_size = Application.fetch_env!(:chatbot, :hnsw_data_import_padding_chunk_size)
     embedding = ElixirChatbotCore.EmbeddingModel.HuggingfaceModel.new(model_name, chunk_size)
 
@@ -48,7 +61,14 @@ defmodule ElixirChatbotCore.IndexServer do
         |> Stream.chunk_every(Application.fetch_env!(:chatbot, :hnsw_data_import_batch_size))
         |> Stream.map(fn entries ->
           entries_preprocessed =
-            entries |> Stream.map(fn {{id, fragment}, _} -> {id, fragment.fragment_text} end)
+            entries
+            |> Stream.map(fn {{id, fragment}, _} ->
+              if is_binary(prepend_to_fragment) do
+                {id, prepend_to_fragment <> fragment.fragment_text}
+              else
+                {id, fragment.fragment_text}
+              end
+            end)
 
           case SimilarityIndex.add_many(index, entries_preprocessed) do
             {:error, err} -> Logger.error(err)
@@ -85,8 +105,15 @@ defmodule ElixirChatbotCore.IndexServer do
     {:reply, res, index}
   end
 
-  defp create_index_path(docs_db, model_name) do
+  @impl true
+  def handle_call({:lookup, text, k}, _from, index) do
+    res = SimilarityIndex.lookup(index, text, k: k)
+    {:reply, res, index}
+  end
+
+  defp create_index_path(docs_db, model_name, metric) do
     model_name = String.replace(model_name, "/", "-")
-    "#{Application.fetch_env!(:chatbot, :hnsw_index_path)}-#{docs_db}_#{model_name}"
+
+    "#{Application.fetch_env!(:chatbot, :hnsw_index_path)}-#{docs_db}_#{model_name}_#{Atom.to_string(metric)}"
   end
 end

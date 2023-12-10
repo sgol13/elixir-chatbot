@@ -4,7 +4,10 @@ defmodule Tests.EmbeddingTestsCase do
   defstruct [
     :embedding_model,
     :similarity_metrics,
-    :docs_db
+    :k,
+    :docs_db,
+    :prepend_to_question,
+    :prepend_to_fragment
   ]
 
   def to_index_params(test_case) do
