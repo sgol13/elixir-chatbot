@@ -81,6 +81,8 @@ defmodule ElixirChatbotCore.SimilarityIndex do
     {ids, texts} = Enum.unzip(entries)
 
     embeddings = EmbeddingModel.EmbeddingModel.generate_many(embedding_model, texts)
+    IO.inspect(embeddings)
+    IO.puts("Xxxxxxxxxxxxxxxxxxxxxxxx")
 
     ids = Nx.tensor(ids)
 

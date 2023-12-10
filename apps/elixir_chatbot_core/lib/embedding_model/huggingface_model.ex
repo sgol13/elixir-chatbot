@@ -77,12 +77,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
     predict_fn.(params, input)
   end
 
-  def generate_embedding(
-        %HuggingfaceModel{
-          serving: serving
-        },
-        text
-      ) do
+  def generate_embedding(%HuggingfaceModel{serving: serving}, text) do
     Nx.Serving.run(serving, [text])
     |> Nx.squeeze()
   end

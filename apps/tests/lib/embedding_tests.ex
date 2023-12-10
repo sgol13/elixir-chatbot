@@ -12,12 +12,12 @@ defmodule Tests.EmbeddingTests do
       %EmbeddingTestsCase{
         embedding_model: "sentence-transformers/paraphrase-MiniLM-L6-v2",
         similarity_metrics: :l2,
-        docs_db: "test"
+        docs_db: "test2"
       },
       %EmbeddingTestsCase{
         embedding_model: "intfloat/multilingual-e5-small",
         similarity_metrics: :cosine,
-        docs_db: "test"
+        docs_db: "test2"
       }
     ]
     |> test_multiple_cases()
