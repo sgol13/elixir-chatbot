@@ -5,13 +5,19 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
   @openai_model_id "gpt-3.5-turbo"
 
   def run do
-    generate("What is the capital of Poland?")
+    # generate("What is the capital of Poland?")
+    str = "<|USER|>- Elixir.List.to_tuple(list) # Examples ## Examples     iex> List.to_tuple([:share, [:elixir, 163]])     {:share, [:elixir, 163]} \nIn the Elixir programming language, What is the difference between a list and a tuple in Elixir?<|ASSISTANT|>"
+    generate(str)
   end
 
   def generate(prompt) do
     headers = build_headers()
     body = build_body(prompt)
-    response = HTTPoison.post(@openai_completions_url, body, headers)
+
+    Logger.info("Open API completion...")
+    IO.inspect(prompt)
+    response = HTTPoison.post(@openai_completions_url, body, headers, recv_timeout: 300000)
+    Logger.info("Open API completion finished")
 
     case response do
       {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->

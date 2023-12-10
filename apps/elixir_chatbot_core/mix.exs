@@ -33,7 +33,8 @@ defmodule ElixirChatbotCore.MixProject do
       {:bumblebee, "~> 0.4.1"},
       {:exla, "~> 0.6.1"},
       {:cubdb, " ~> 2.0.2"},
-      {:httpoison, "~> 2.0"}
+      {:httpoison, "~> 2.0"},
+      {:earmark, "~> 1.4"}
     ]
   end
 end
