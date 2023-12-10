@@ -26,7 +26,13 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
           {input, _} =
             Nx.LazyContainer.traverse(input, nil, fn template, t, _ ->
               if Nx.rank(template) > 2 do
-                {Nx.flatten(t.(), axes: [0, 1]), nil}
+                [tok_size | _] =
+                  template
+                  |> Nx.shape()
+                  |> Tuple.to_list()
+                  |> Enum.reverse()
+
+                {Nx.reshape(t.(), {:auto, tok_size}), nil}
               else
                 {t.(), nil}
               end
@@ -34,7 +40,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
 
           res = runner.(predict_fun, params, input)
 
-          res.pooled_state
+          Nx.stack([res.pooled_state])
         end
       end)
       |> Nx.Serving.client_preprocessing(fn input ->
@@ -82,7 +88,9 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
   end
 
   def generate_many(%HuggingfaceModel{serving: serving}, texts) do
-    Nx.Serving.run(serving, texts)
+    serving
+    |> Nx.Serving.run(texts)
+    |> Nx.reshape({length(texts), :auto})
   end
 
   defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: HuggingfaceModel do
