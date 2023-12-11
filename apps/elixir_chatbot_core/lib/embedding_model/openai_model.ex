@@ -1,29 +1,26 @@
 defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
+  alias ElixirChatbotCore.EmbeddingModel.OpenAiModel
   require Logger
+
+  defstruct [:embedding_size]
 
   @openai_embedding_url "https://api.openai.com/v1/embeddings"
   @openai_model_id "text-embedding-ada-002"
+  @embedding_dimension 1536
 
-  def run do
-    compute_batch([
-      "What is the capital of Poland?",
-      "The capital of Poland is Warsaw.",
-      "Warsaw is the largest city in Poland",
-      "How to create a map in Elixir?"
-    ])
+  def new do
+    %__MODULE__{embedding_size: @embedding_dimension}
   end
 
   def compute(text) do
-    compute_batch([text])
+    compute_many([text])
   end
 
-  def compute_batch(texts) do
+  def compute_many(texts) do
     headers = build_headers()
     body = build_body(texts)
     response = HTTPoison.post(@openai_embedding_url, body, headers)
 
-    [text | _] = texts
-    Logger.info("compute #{String.length(text)}")
     case response do
       {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
         {:ok, parse_response(response_body)}
@@ -31,6 +28,26 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
       {:error, %HTTPoison.Error{reason: reason}} ->
         Logger.error("OpenAI API embedding request error: #{reason}")
         :error
+    end
+  end
+
+  defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: OpenAiModel do
+    @impl true
+    @spec compute(%OpenAiModel{}, String.t()) :: {:ok, Nx.Tensor.t()} | :error
+    def compute(_model, text) do
+      OpenAiModel.compute(text)
+    end
+
+    @impl true
+    @spec compute_many(%OpenAiModel{}, [String.t()]) :: {:ok, Nx.Tensor.t()} | :error
+    def compute_many(_model, texts) do
+      OpenAiModel.compute_many(texts)
+    end
+
+    @impl true
+    @spec get_dimension(%OpenAiModel{}) :: non_neg_integer()
+    def get_dimension(%OpenAiModel{embedding_size: embedding_size}) do
+      embedding_size
     end
   end
 
@@ -54,8 +71,5 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
     |> Stream.map(&(&1["embedding"]))
     |> Enum.to_list
     |> Nx.tensor
-    # |> Stream.map(&Nx.tensor(&1))
-    # |> Stream.map(&Nx.reshape(&1, {1, elem(Nx.shape(&1), 0)})) # do we need to have [1][1536] shape instead of [1536] ???
-    # |> Enum.to_list
   end
 end

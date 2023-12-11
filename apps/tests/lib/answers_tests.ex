@@ -1,13 +1,3 @@
-# The script reads questions from txt files in the ./questions directory
-# and saves bot's responses to html files in the ./responses directory.
-# To run the script:
-#   ies -S mix
-#   c("manual_tests/bot_manual_tests.ex")
-#
-#   Tests.AnswersTests.run() - run the script using default files questions_1.txt and responses_1.html
-#
-#   Tests.AnswersTests.run("questions_2.txt", "responses_2.html") - run the script using custom files
-
 defmodule Tests.AnswersTests do
   alias ElixirChatbotCore.GenerationModel.OpenAiModel
   alias ElixirChatbotCore.DocumentationDatabase
@@ -31,7 +21,7 @@ defmodule Tests.AnswersTests do
 
   defp run_with_paths(questions_path, responses_path) do
     test_case = %EmbeddingTestsCase{
-      embedding_model: "openai/text-embedding-ada-002",
+      embedding_model: {:openai, "text-embedding-ada-002"},
       similarity_metrics: :cosine,
       docs_db: "full"
     }
@@ -83,7 +73,7 @@ defmodule Tests.AnswersTests do
 
   defp start_index_server(test_case) do
     test_case
-    |> EmbeddingTestsCase.to_index_params
+    |> EmbeddingTestsCase.to_embedding_params
     |> IndexServer.child_spec(test_case.docs_db)
     |> TestSupervisor.start_child
   end
