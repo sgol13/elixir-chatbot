@@ -77,17 +77,12 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
     predict_fn.(params, input)
   end
 
-  def generate_embedding(
-        %HuggingfaceModel{
-          serving: serving
-        },
-        text
-      ) do
+  def compute(%HuggingfaceModel{serving: serving}, text) do
     Nx.Serving.run(serving, [text])
     |> Nx.squeeze()
   end
 
-  def generate_many(%HuggingfaceModel{serving: serving}, texts) do
+  def compute_many(%HuggingfaceModel{serving: serving}, texts) do
     serving
     |> Nx.Serving.run(texts)
     |> Nx.reshape({length(texts), :auto})
@@ -95,20 +90,20 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
 
   defimpl ElixirChatbotCore.EmbeddingModel.EmbeddingModel, for: HuggingfaceModel do
     @impl true
-    @spec generate_embedding(%HuggingfaceModel{}, String.t()) :: Nx.Tensor.t()
-    def generate_embedding(model, text) do
-      HuggingfaceModel.generate_embedding(model, text)
+    @spec compute(%HuggingfaceModel{}, String.t()) :: {:ok, Nx.Tensor.t()} | :error
+    def compute(model, text) do
+      HuggingfaceModel.compute(model, text)
     end
 
     @impl true
-    @spec generate_many(%HuggingfaceModel{}, [String.t()]) :: Nx.Tensor.t()
-    def generate_many(model, texts) do
-      HuggingfaceModel.generate_many(model, texts)
+    @spec compute_many(%HuggingfaceModel{}, [String.t()]) :: {:ok, Nx.Tensor.t()} | :error
+    def compute_many(model, texts) do
+      HuggingfaceModel.compute_many(model, texts)
     end
 
     @impl true
-    @spec get_embedding_dimension(%HuggingfaceModel{}) :: non_neg_integer()
-    def get_embedding_dimension(%HuggingfaceModel{embedding_size: embedding_size}) do
+    @spec get_dimension(%HuggingfaceModel{}) :: non_neg_integer()
+    def get_dimension(%HuggingfaceModel{embedding_size: embedding_size}) do
       embedding_size
     end
   end

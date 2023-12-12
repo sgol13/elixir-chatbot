@@ -6,18 +6,14 @@ defmodule Tests.EmbeddingTests do
   require Logger
 
   @output_path "data/embedding_out/"
+  @test_size 10
 
   def run() do
     [
       %EmbeddingTestsCase{
-        embedding_model: "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        similarity_metrics: :l2,
-        docs_db: "test"
-      },
-      %EmbeddingTestsCase{
-        embedding_model: "intfloat/multilingual-e5-small",
+        embedding_model: {:openai, "text-embedding-ada-002"},
         similarity_metrics: :cosine,
-        docs_db: "test"
+        docs_db: "full"
       }
     ]
     |> test_multiple_cases()
@@ -37,6 +33,7 @@ defmodule Tests.EmbeddingTests do
     {:ok, db_pid} = start_database(test_case)
     {:ok, index_pid} = start_index_server(test_case)
 
+    Logger.info("Starting embedding test...")
     accuracy = test_embedding_model()
     Logger.info("Test ended with success rate: #{Float.round(accuracy * 100, 2)}%")
 
@@ -47,8 +44,13 @@ defmodule Tests.EmbeddingTests do
 
   defp test_embedding_model() do
     all = DocumentationDatabase.get_all()
+      |> Enum.to_list
+      |> Enum.take_random(@test_size)
+      |> Stream.with_index()
 
-    correct = all |> Stream.map(fn {id, fragment} ->
+      correct = all
+      |> Stream.map(fn {{id, fragment}, loop_id} ->
+        ProgressBar.render(loop_id, @test_size, suffix: :count)
       check_index(create_question(fragment), id)
     end) |> Enum.count(fn result ->
       result == :ok
@@ -58,7 +60,7 @@ defmodule Tests.EmbeddingTests do
   end
 
   defp check_index(question, id) do
-    {:ok, res} = IndexServer.lookup(question)
+    {:ok, res} = IndexServer.lookup(question, 10)
     if res |> Nx.to_list() |> List.flatten() |> Enum.member?(id) do
       :ok
     else
@@ -82,7 +84,7 @@ defmodule Tests.EmbeddingTests do
 
   defp start_index_server(test_case) do
     test_case
-    |> EmbeddingTestsCase.to_index_params
+    |> EmbeddingTestsCase.to_embedding_params
     |> IndexServer.child_spec(test_case.docs_db)
     |> TestSupervisor.start_child
   end

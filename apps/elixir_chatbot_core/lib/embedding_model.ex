@@ -1,12 +1,19 @@
 defmodule ElixirChatbotCore.EmbeddingModel do
   defprotocol EmbeddingModel do
-    @spec generate_embedding(t, String.t()) :: Nx.Tensor.t()
-    def generate_embedding(model, text)
+    @spec compute(t, String.t()) :: {:ok, Nx.Tensor.t()} | :error
+    def compute(model, text)
 
-    @spec generate_many(t, [String.t()]) :: Nx.Tensor.t()
-    def generate_many(model, texts)
+    @spec compute_many(t, [String.t()]) :: {:ok, Nx.Tensor.t()} | :error
+    def compute_many(model, texts)
 
-    @spec get_embedding_dimension(t) :: non_neg_integer()
-    def get_embedding_dimension(model)
+    @spec get_dimension(t) :: non_neg_integer()
+    def get_dimension(model)
+  end
+
+  defmodule EmbeddingParameters do
+    defstruct [
+      :embedding_model,
+      :similarity_metrics
+    ]
   end
 end

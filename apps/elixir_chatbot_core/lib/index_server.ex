@@ -1,17 +1,22 @@
 defmodule ElixirChatbotCore.IndexServer do
   alias ElixirChatbotCore.DocumentationDatabase
   alias ElixirChatbotCore.SimilarityIndex
+  alias ElixirChatbotCore.EmbeddingModel
+  alias ElixirChatbotCore.EmbeddingModel.EmbeddingParameters
 
   require Logger
   use GenServer
 
+  @spec start_link(String.t(), %EmbeddingParameters{}) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(path, embedding_params) do
     params = {path, embedding_params}
     GenServer.start_link(__MODULE__, params, name: __MODULE__)
   end
 
   def child_spec(embedding_params, docs_db_name) do
-    path = create_index_path(docs_db_name, embedding_params.embedding_model)
+    {_, model_name} = embedding_params.embedding_model
+    path = create_index_path(docs_db_name, model_name)
+
     %{
       id: __MODULE__,
       start: {__MODULE__, :start_link, [path, embedding_params]},
@@ -23,22 +28,39 @@ defmodule ElixirChatbotCore.IndexServer do
     GenServer.cast(__MODULE__, {:add, id, text})
   end
 
-  def lookup(text) do
-    GenServer.call(__MODULE__, {:lookup, text}, 100_000)
+  def lookup(text, k) do
+    GenServer.call(__MODULE__, {:lookup, text, k}, 100_000)
   end
 
   @impl true
-  def init({path, %{embedding_model: model_name, similarity_metrics: similarity_metrics}}) do
-    chunk_size = Application.fetch_env!(:chatbot, :hnsw_data_import_padding_chunk_size)
-    embedding = ElixirChatbotCore.EmbeddingModel.HuggingfaceModel.new(model_name, chunk_size)
+  def init(
+        {path,
+         %EmbeddingParameters{
+            embedding_model: model_config,
+            similarity_metrics: similarity_metrics
+         }}
+      ) do
+
+    embedding_model =
+      case model_config do
+        {:hf, model_name} ->
+          chunk_size = Application.fetch_env!(:chatbot, :hnsw_data_import_padding_chunk_size)
+          EmbeddingModel.HuggingfaceModel.new(model_name, chunk_size)
+
+        {:openai, _model_name} ->
+          EmbeddingModel.OpenAiModel.new()
+
+        _ ->
+          Logger.error("Unknown embedding model.")
+      end
 
     Logger.info("Starting index at #{path}")
 
     if File.exists?(path) do
       Logger.info("Loading the HNSW index from disk")
-      {:ok, SimilarityIndex.load_index(path, embedding, similarity_metrics)}
+      {:ok, SimilarityIndex.load_index(path, embedding_model, similarity_metrics)}
     else
-      index = SimilarityIndex.create_model(embedding, similarity_metrics)
+      index = SimilarityIndex.create_model(embedding_model, similarity_metrics)
 
       Logger.info("Populating the HNSW index")
 
@@ -67,6 +89,7 @@ defmodule ElixirChatbotCore.IndexServer do
         Logger.info("Saving populated index to disk...")
 
         SimilarityIndex.save_index(index, path)
+        Logger.info("Index saved")
       end
 
       {:ok, index}
@@ -80,8 +103,8 @@ defmodule ElixirChatbotCore.IndexServer do
   end
 
   @impl true
-  def handle_call({:lookup, text}, _from, index) do
-    res = SimilarityIndex.lookup(index, text, k: 1)
+  def handle_call({:lookup, text, k}, _from, index) do
+    res = SimilarityIndex.lookup(index, text, k)
     {:reply, res, index}
   end
 

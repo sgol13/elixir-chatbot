@@ -29,7 +29,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
     {:ok, index} =
       HNSWLib.Index.load_index(
         similarity_metrics,
-        EmbeddingModel.EmbeddingModel.get_embedding_dimension(embedding_model),
+        EmbeddingModel.EmbeddingModel.get_dimension(embedding_model),
         path,
         max_elements: @max_elements
       )
@@ -46,7 +46,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
     {:ok, index} =
       HNSWLib.Index.new(
         similarity_metrics,
-        EmbeddingModel.EmbeddingModel.get_embedding_dimension(embedding_model),
+        EmbeddingModel.EmbeddingModel.get_dimension(embedding_model),
         @max_elements
       )
 
@@ -64,7 +64,8 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   def add(index, id, text) do
     %SimilarityIndex{index: index, embedding_model: embedding_model} = index
 
-    embedding = EmbeddingModel.EmbeddingModel.generate_embedding(embedding_model, text)
+    {:ok, embedding} = EmbeddingModel.EmbeddingModel.compute(embedding_model, text)
+
     HNSWLib.Index.add_items(index, Nx.stack([embedding]), ids: Nx.tensor([id]))
   end
 
@@ -80,10 +81,9 @@ defmodule ElixirChatbotCore.SimilarityIndex do
 
     {ids, texts} = Enum.unzip(entries)
 
-    embeddings = EmbeddingModel.EmbeddingModel.generate_many(embedding_model, texts)
+    {:ok, embeddings} = EmbeddingModel.EmbeddingModel.compute_many(embedding_model, texts)
 
     ids = Nx.tensor(ids)
-
     res = HNSWLib.Index.add_items(index, embeddings, ids: ids)
 
     Nx.backend_deallocate({ids, embeddings})
@@ -97,13 +97,12 @@ defmodule ElixirChatbotCore.SimilarityIndex do
             :index => %HNSWLib.Index{dim: any, reference: any, space: any}
           },
           String.t(),
-          keyword()
+          non_neg_integer()
         ) :: {:ok, Nx.Tensor.t()} | {:error, String.t()}
-  def lookup(index, text, opts \\ []) do
+  def lookup(index, text, k) do
     %SimilarityIndex{index: index, embedding_model: embedding_model} = index
-    k = Keyword.get(opts, :k, 3)
 
-    embedding = EmbeddingModel.EmbeddingModel.generate_embedding(embedding_model, text)
+    {:ok, embedding} = EmbeddingModel.EmbeddingModel.compute(embedding_model, text)
 
     {:ok, labels, _dists} = HNSWLib.Index.knn_query(index, embedding, k: k)
     {:ok, labels}
