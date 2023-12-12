@@ -1,10 +1,10 @@
 defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
   alias ElixirChatbotCore.EmbeddingModel.OpenAiModel
+  alias ElixirChatbotCore.OpenAiClient
   require Logger
 
   defstruct [:embedding_size]
 
-  @openai_embedding_url "https://api.openai.com/v1/embeddings"
   @openai_model_id "text-embedding-ada-002"
   @embedding_dimension 1536
 
@@ -12,21 +12,17 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
     %__MODULE__{embedding_size: @embedding_dimension}
   end
 
-  def compute(text) do
-    compute_many([text])
-  end
+  def compute(text), do: compute_many([text])
 
+  @spec compute_many(any()) :: :error | {:ok, any()}
   def compute_many(texts) do
-    headers = build_headers()
     body = build_body(texts)
-    response = HTTPoison.post(@openai_embedding_url, body, headers)
 
-    case response do
-      {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
+    case OpenAiClient.post_embeddings(body, recv_timeout: 8000, retries: 3) do
+      {:ok, response_body} ->
         {:ok, parse_response(response_body)}
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        Logger.error("OpenAI API embedding request error: #{reason}")
+      :error ->
         :error
     end
   end
@@ -46,16 +42,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
 
     @impl true
     @spec get_dimension(%OpenAiModel{}) :: non_neg_integer()
-    def get_dimension(%OpenAiModel{embedding_size: embedding_size}) do
-      embedding_size
-    end
-  end
-
-  defp build_headers do
-    [
-      {"Content-Type", "application/json"},
-      {"Authorization", "Bearer #{Application.fetch_env!(:chatbot, :openai_api_key)}"}
-    ]
+    def get_dimension(%OpenAiModel{embedding_size: embedding_size}), do: embedding_size
   end
 
   defp build_body(texts) do
@@ -63,13 +50,12 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
       "model" => @openai_model_id,
       "input" => texts
     }
-    |> Jason.encode!()
   end
 
   defp parse_response(response_body) do
-    Jason.decode!(response_body)["data"]
-    |> Stream.map(&(&1["embedding"]))
-    |> Enum.to_list
-    |> Nx.tensor
+    response_body["data"]
+    |> Stream.map(& &1["embedding"])
+    |> Enum.to_list()
+    |> Nx.tensor()
   end
 end

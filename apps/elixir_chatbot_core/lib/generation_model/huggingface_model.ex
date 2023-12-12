@@ -25,7 +25,8 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
 
   defimpl GenerationModel, for: HuggingfaceModel do
     @impl true
-    def generate(model, prompt, _metadata) do
+    def generate(model, question, _fragments, _metadata) do
+      prompt = question # TODO: implement prompt building
       res =
         case model do
           %HuggingfaceModel{type: :stateful, name: name} ->
@@ -37,7 +38,7 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
 
       %{results: [%{text: generated_text}]} = res
 
-      {:ok, generated_text}
+      {:ok, generated_text, []}
     end
   end
 

@@ -28,8 +28,8 @@ defmodule ElixirChatbotCore.IndexServer do
     GenServer.cast(__MODULE__, {:add, id, text})
   end
 
-  def lookup(text) do
-    GenServer.call(__MODULE__, {:lookup, text}, 100_000)
+  def lookup(text, k) do
+    GenServer.call(__MODULE__, {:lookup, text, k}, 100_000)
   end
 
   @impl true
@@ -103,8 +103,8 @@ defmodule ElixirChatbotCore.IndexServer do
   end
 
   @impl true
-  def handle_call({:lookup, text}, _from, index) do
-    res = SimilarityIndex.lookup(index, text, k: 1)
+  def handle_call({:lookup, text, k}, _from, index) do
+    res = SimilarityIndex.lookup(index, text, k)
     {:reply, res, index}
   end
 

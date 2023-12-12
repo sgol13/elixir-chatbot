@@ -1,10 +1,10 @@
 defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
   alias ElixirChatbotCore.GenerationModel.OpenAiModel
   alias ElixirChatbotCore.GenerationModel.GenerationModel
+  alias ElixirChatbotCore.OpenAiClient
   require Logger
 
-  @openai_completions_url "https://api.openai.com/v1/chat/completions"
-  @openai_model_id "gpt-3.5-turbo"
+  @openai_model_id "gpt-3.5-turbo-1106"
 
   defstruct []
 
@@ -13,35 +13,26 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
   end
 
   def generate(prompt) do
-    headers = build_headers()
     body = build_body(prompt)
 
-    Logger.info("Open API completion...")
-    response = HTTPoison.post(@openai_completions_url, body, headers, recv_timeout: 300000)
-    Logger.info("Open API completion finished")
+    Logger.info("OpenAI model request [#{Gpt3Tokenizer.token_count(prompt)} tokens]")
 
-    case response do
-      {:ok, %HTTPoison.Response{status_code: 200, body: response_body}} ->
-        {:ok, parse_response(response_body)}
+    case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 3) do
+      {:ok, response_body} ->
+        response_content = parse_response(response_body)
+        Logger.info("OpenAI model response [#{Gpt3Tokenizer.token_count(response_content)} tokens]")
+        {:ok, response_content, []}
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        Logger.error("OpenAI API completion request error: #{reason}")
+      :error ->
         :error
     end
   end
 
   defimpl GenerationModel, for: OpenAiModel do
     @impl true
-    def generate(_model, prompt, _metadata) do
-      OpenAiModel.generate(prompt)
+    def generate(_model, question, _fragments, _metadata) do
+      OpenAiModel.generate(question)
     end
-  end
-
-  defp build_headers do
-    [
-      {"Content-Type", "application/json"},
-      {"Authorization", "Bearer #{Application.fetch_env!(:chatbot, :openai_api_key)}"}
-    ]
   end
 
   defp build_body(prompt) do
@@ -54,11 +45,10 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
         }
       ]
     }
-    |> Jason.encode!()
   end
 
   defp parse_response(response_body) do
-    messages = Jason.decode!(response_body)["choices"]
+    messages = response_body["choices"]
     hd(messages)["message"]["content"]
   end
 end

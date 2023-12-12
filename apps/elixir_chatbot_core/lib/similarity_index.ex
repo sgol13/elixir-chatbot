@@ -97,11 +97,10 @@ defmodule ElixirChatbotCore.SimilarityIndex do
             :index => %HNSWLib.Index{dim: any, reference: any, space: any}
           },
           String.t(),
-          keyword()
+          non_neg_integer()
         ) :: {:ok, Nx.Tensor.t()} | {:error, String.t()}
-  def lookup(index, text, opts \\ []) do
+  def lookup(index, text, k) do
     %SimilarityIndex{index: index, embedding_model: embedding_model} = index
-    k = Keyword.get(opts, :k, 3)
 
     {:ok, embedding} = EmbeddingModel.EmbeddingModel.compute(embedding_model, text)
 

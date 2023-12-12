@@ -1,4 +1,5 @@
 defmodule ElixirChatbotCore.Chatbot do
+  alias ElixirChatbotCore.GenerationModel.GenerationModel
   require Logger
   use GenServer
 
@@ -20,31 +21,21 @@ defmodule ElixirChatbotCore.Chatbot do
 
   @spec generate(String.t()) ::
           {:ok, String.t(), [%ElixirChatbotCore.DocumentationManager.DocumentationFragment{}]}
-          | {:error, String.t()}
+          | {:error, String.t(), [String.t()]}
   def generate(message) do
     GenServer.call(__MODULE__, {:generate, message}, 300_000)
   end
 
   def handle_call({:generate, message}, _from, model) do
-    fragments = lookup_question(message)
+    fragments = lookup_question(message, 100)
 
-    fragments_text =
-      fragments
-      |> Enum.map(fn e -> "- #{e.fragment_text}" end)
-      |> Enum.map(&String.replace(&1, ~r/\n+/u, " "))
-      |> Enum.join("\n")
+    {:ok, response, selected_fragments} = GenerationModel.generate(model, message, fragments)
 
-    question = String.replace(message, ~r/\?+$/, "")
-    prompt =
-      "<|USER|>#{fragments_text}\nIn the Elixir programming language, #{question}?<|ASSISTANT|>"
-
-    {:ok, response} = ElixirChatbotCore.GenerationModel.GenerationModel.generate(model, prompt, %{})
-
-    {:reply, {:ok, response, fragments}, model}
+    {:reply, {:ok, response, selected_fragments}, model}
   end
 
-  def lookup_question(question_text) do
-    {:ok, res} = ElixirChatbotCore.IndexServer.lookup(question_text)
+  defp lookup_question(question_text, k) do
+    {:ok, res} = ElixirChatbotCore.IndexServer.lookup(question_text, k)
 
     res
     |> Nx.to_flat_list()

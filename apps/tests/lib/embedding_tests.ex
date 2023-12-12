@@ -13,7 +13,7 @@ defmodule Tests.EmbeddingTests do
       %EmbeddingTestsCase{
         embedding_model: {:openai, "text-embedding-ada-002"},
         similarity_metrics: :cosine,
-        docs_db: "test2"
+        docs_db: "full"
       }
     ]
     |> test_multiple_cases()
@@ -50,7 +50,7 @@ defmodule Tests.EmbeddingTests do
 
       correct = all
       |> Stream.map(fn {{id, fragment}, loop_id} ->
-        ProgressBar.render(loop_id, @test_size)
+        ProgressBar.render(loop_id, @test_size, suffix: :count)
       check_index(create_question(fragment), id)
     end) |> Enum.count(fn result ->
       result == :ok
@@ -60,7 +60,7 @@ defmodule Tests.EmbeddingTests do
   end
 
   defp check_index(question, id) do
-    {:ok, res} = IndexServer.lookup(question)
+    {:ok, res} = IndexServer.lookup(question, 10)
     if res |> Nx.to_list() |> List.flatten() |> Enum.member?(id) do
       :ok
     else
