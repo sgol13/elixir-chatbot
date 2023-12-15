@@ -6,7 +6,6 @@ defmodule Tests.EmbeddingTests do
   require Logger
 
   @output_path "data/embedding_out/"
-  @test_size 10
 
   def run(num_cases \\ nil) do
     # {model_name, question_prefix, passage_prefix}
@@ -33,14 +32,15 @@ defmodule Tests.EmbeddingTests do
         }
       end
 
-    openai_cases = for database <- databases do
-      %EmbeddingTestsCase{
-        embedding_model: {:openai, "text-embedding-ada-002"},
-        similarity_metrics: :cosine,
-        k: 100,
-        docs_db: database
-      }
-    end
+    openai_cases =
+      for database <- databases do
+        %EmbeddingTestsCase{
+          embedding_model: {:openai, "text-embedding-ada-002"},
+          similarity_metrics: :cosine,
+          k: 100,
+          docs_db: database
+        }
+      end
 
     cases = Enum.concat(openai_cases, cases)
 
@@ -157,7 +157,7 @@ defmodule Tests.EmbeddingTests do
 
   defp start_index_server(test_case) do
     test_case
-    |> EmbeddingTestsCase.to_index_params()
+    |> EmbeddingTestsCase.to_embedding_params()
     |> IndexServer.child_spec(test_case.docs_db, test_case.prepend_to_fragment)
     |> TestSupervisor.start_child()
   end

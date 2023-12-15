@@ -17,7 +17,10 @@ defmodule Tests.EmbeddingTestsCase do
       %{
         embedding_model: model_name,
         similarity_metrics: params.similarity_metrics,
-        docs_db: params.docs_db
+        docs_db: params.docs_db,
+        prepend_to_question: params.prepend_to_question,
+        prepend_to_fragment: params.prepend_to_fragment,
+        k: params.k
       }
       |> Jason.encode!
     end
