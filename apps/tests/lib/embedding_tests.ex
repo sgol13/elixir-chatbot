@@ -6,93 +6,171 @@ defmodule Tests.EmbeddingTests do
   require Logger
 
   @output_path "data/embedding_out/"
-  @test_size 10
 
-  def run() do
-    [
-      %EmbeddingTestsCase{
-        embedding_model: {:openai, "text-embedding-ada-002"},
-        similarity_metrics: :cosine,
-        docs_db: "full"
-      }
+  def run(num_cases \\ nil, include_openai \\ false) do
+    # {model_name, question_prefix, passage_prefix}
+    models = [
+      {"sentence-transformers/paraphrase-MiniLM-L6-v2", nil, nil},
+      {"sentence-transformers/all-MiniLM-L6-v2", nil, nil},
+      {"BAAI/bge-large-en", "Represent this sentence for searching relevant passages: ", nil,
+       nil},
+      {"thenlper/gte-large", nil, nil},
+      {"intfloat/multilingual-e5-large", "query: ", "passage: "},
+      {"intfloat/e5-large-v2", "query: ", "passage: "}
     ]
-    |> test_multiple_cases()
+
+    databases = ["test-elixir-only", "test-popular-packages"]
+
+    cases =
+      for {model, prepend_q, prepend_p} <- models, database <- databases do
+        %EmbeddingTestsCase{
+          embedding_model: {:hf, model},
+          similarity_metrics: :cosine,
+          k: 100,
+          prepend_to_question: prepend_q,
+          prepend_to_fragment: prepend_p,
+          docs_db: database
+        }
+      end
+
+    openai_cases =
+      for database <- databases do
+        %EmbeddingTestsCase{
+          embedding_model: {:openai, "text-embedding-ada-002"},
+          similarity_metrics: :cosine,
+          k: 100,
+          docs_db: database
+        }
+      end
+
+    cases = if include_openai do
+      Enum.concat(openai_cases, cases)
+    else
+      cases
+    end
+
+    test_multiple_cases(cases, num_cases)
   end
 
-  def test_multiple_cases(test_cases) do
+  def test_multiple_cases(test_cases, num_cases) do
     test_cases
     |> Stream.map(fn test_case ->
-      {test_case, run_test(test_case)}
+      {test_case, run_test(test_case, num_cases)}
     end)
     |> Stream.each(&save_json_file/1)
-    |> Enum.count
+    |> Enum.count()
   end
 
-  defp run_test(test_case) do
+  defp run_test(test_case, num_cases) do
     TestSupervisor.terminate_all_children()
     {:ok, db_pid} = start_database(test_case)
     {:ok, index_pid} = start_index_server(test_case)
 
-    Logger.info("Starting embedding test...")
-    accuracy = test_embedding_model()
-    Logger.info("Test ended with success rate: #{Float.round(accuracy * 100, 2)}%")
+    histogram =
+      test_embedding_model(
+        Map.get(test_case, :prepend_to_question),
+        Map.get(test_case, :k),
+        num_cases
+      )
+
+    [k1_accuracy | _] = histogram
+
+    Logger.info("Test ended with success rate: #{Float.round(k1_accuracy * 100, 2)}%")
 
     TestSupervisor.terminate_child(db_pid)
     TestSupervisor.terminate_child(index_pid)
-    accuracy
+    histogram
   end
 
-  defp test_embedding_model() do
-    all = DocumentationDatabase.get_all()
-      |> Enum.to_list
-      |> Enum.take_random(@test_size)
-      |> Stream.with_index()
+  defp test_embedding_model(prepend, k, num_cases) do
+    all_ids =
+      DocumentationDatabase.get_all()
+      |> Stream.map(fn {id, _} -> id end)
 
-      correct = all
-      |> Stream.map(fn {{id, fragment}, loop_id} ->
-        ProgressBar.render(loop_id, @test_size, suffix: :count)
-      check_index(create_question(fragment), id)
-    end) |> Enum.count(fn result ->
-      result == :ok
-    end)
+    all_ids =
+      if !is_nil(num_cases) do
+        Enum.take_random(all_ids, num_cases)
+      else
+        Enum.to_list(all_ids)
+      end
 
-    correct / (all |> Enum.count())
+    all_ids_len = length(all_ids)
+
+    histogram =
+      all_ids
+      |> Stream.with_index(1)
+      |> Stream.map(fn {id, i} ->
+        ProgressBar.render(i, all_ids_len)
+
+        DocumentationDatabase.get(id)
+        |> create_question(prepend)
+        |> check_index(k, id)
+      end)
+      |> Enum.reduce(for(_ <- 1..k, do: 0), fn res, histogram ->
+        case res do
+          {:ok, i} ->
+            histogram
+            |> Enum.with_index()
+            |> Enum.map(fn {hist_hits, hist_i} ->
+              if hist_i < i do
+                hist_hits
+              else
+                hist_hits + 1
+              end
+            end)
+
+          _ ->
+            histogram
+        end
+      end)
+
+    histogram |> Enum.map(fn hits -> hits / all_ids_len end)
   end
 
-  defp check_index(question, id) do
-    {:ok, res} = IndexServer.lookup(question, 10)
-    if res |> Nx.to_list() |> List.flatten() |> Enum.member?(id) do
-      :ok
-    else
+  defp check_index(question, k, id) do
+    {:ok, res} = IndexServer.lookup(question, k)
+
+    index = res |> Nx.to_list() |> List.flatten() |> Enum.find_index(&(&1 == id))
+
+    if is_nil(index) do
       :mismatch
+    else
+      {:ok, index}
     end
   end
 
-  defp create_question(fragment) do
-    case fragment.type do
-      :function -> "How does #{fragment.function_signature} work in Elixir?"
-      :module -> "What is a #{fragment.source_module} in Elixir?"
-      _ -> "What's that? #{fragment.source_module}"
+  defp create_question(fragment, prepend) do
+    prompt =
+      case fragment.type do
+        :function -> "How does #{fragment.function_signature} work in Elixir?"
+        :module -> "What is a #{fragment.source_module} in Elixir?"
+        _ -> "What's that? #{fragment.source_module}"
+      end
+
+    if is_binary(prepend) do
+      prepend <> prompt
+    else
+      prompt
     end
   end
 
   defp start_database(test_case) do
     test_case.docs_db
-    |> DocumentationDatabase.child_spec
-    |> TestSupervisor.start_child
+    |> DocumentationDatabase.child_spec()
+    |> TestSupervisor.start_child()
   end
 
   defp start_index_server(test_case) do
     test_case
-    |> EmbeddingTestsCase.to_embedding_params
-    |> IndexServer.child_spec(test_case.docs_db)
-    |> TestSupervisor.start_child
+    |> EmbeddingTestsCase.to_embedding_params()
+    |> IndexServer.child_spec(test_case.docs_db, test_case.prepend_to_fragment)
+    |> TestSupervisor.start_child()
   end
 
-  defp save_json_file({test_case, accuracy}) do
+  defp save_json_file({test_case, histogram}) do
     content = %{
       params: test_case,
-      accuracy: accuracy
+      histogram: histogram
     }
 
     json_string = Jason.encode!(content)
