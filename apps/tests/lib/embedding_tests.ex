@@ -15,7 +15,8 @@ defmodule Tests.EmbeddingTests do
       {"BAAI/bge-large-en", "Represent this sentence for searching relevant passages: ", nil,
        nil},
       {"thenlper/gte-large", nil, nil},
-      {"intfloat/multilingual-e5-large", "query: ", "passage: "}
+      {"intfloat/multilingual-e5-large", "query: ", "passage: "},
+      {"intfloat/e5-large-v2", "query: ", "passage: "}
     ]
 
     databases = ["test-elixir-only", "test-popular-packages"]

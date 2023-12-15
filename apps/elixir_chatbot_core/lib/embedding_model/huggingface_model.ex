@@ -92,13 +92,13 @@ defmodule ElixirChatbotCore.EmbeddingModel.HuggingfaceModel do
     @impl true
     @spec compute(%HuggingfaceModel{}, String.t()) :: {:ok, Nx.Tensor.t()} | :error
     def compute(model, text) do
-      HuggingfaceModel.compute(model, text)
+      {:ok, HuggingfaceModel.compute(model, text)}
     end
 
     @impl true
     @spec compute_many(%HuggingfaceModel{}, [String.t()]) :: {:ok, Nx.Tensor.t()} | :error
     def compute_many(model, texts) do
-      HuggingfaceModel.compute_many(model, texts)
+      {:ok, HuggingfaceModel.compute_many(model, texts)}
     end
 
     @impl true
