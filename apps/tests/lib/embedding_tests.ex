@@ -7,7 +7,7 @@ defmodule Tests.EmbeddingTests do
 
   @output_path "data/embedding_out/"
 
-  def run(num_cases \\ nil) do
+  def run(num_cases \\ nil, include_openai \\ false) do
     # {model_name, question_prefix, passage_prefix}
     models = [
       {"sentence-transformers/paraphrase-MiniLM-L6-v2", nil, nil},
@@ -42,7 +42,11 @@ defmodule Tests.EmbeddingTests do
         }
       end
 
-    cases = Enum.concat(openai_cases, cases)
+    cases = if include_openai do
+      Enum.concat(openai_cases, cases)
+    else
+      cases
+    end
 
     test_multiple_cases(cases, num_cases)
   end
