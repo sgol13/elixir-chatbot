@@ -4,7 +4,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   alias ElixirChatbotCore.EmbeddingModel
   defstruct [:index, :embedding_model]
 
-  @max_elements 10_000
+  @max_elements 20_000
 
   @spec save_index(
           %ElixirChatbotCore.SimilarityIndex{
