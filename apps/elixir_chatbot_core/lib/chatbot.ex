@@ -30,7 +30,7 @@ defmodule ElixirChatbotCore.Chatbot do
     fragments = lookup_question(message, 100)
 
     {:ok, response, selected_fragments} = GenerationModel.generate(model, message, fragments)
-    IO.inspect(selected_fragments)
+
     {:reply, {:ok, response, selected_fragments}, model}
   end
 

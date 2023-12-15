@@ -21,7 +21,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   def generate(question, fragments) do
     question_tokens = count_tokens(question)
-    guideline_tokens = 10
+    guideline_tokens = count_tokens(@guideline)
     max_docs_tokens = @input_context - guideline_tokens - question_tokens
 
     {selected_fragments, docs_tokens} =
@@ -61,8 +61,8 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
     ]
 
     %{
-      "model" => @openai_model_id,
-      "messages" => messages
+      model: @openai_model_id,
+      messages: messages
     }
   end
 
