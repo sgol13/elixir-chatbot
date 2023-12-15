@@ -31,7 +31,8 @@ defmodule Tests.MixProject do
       {:nx, "~> 0.6.1"},
       {:jason, "~> 1.2"},
       {:timex, "~> 3.7"},
-      {:elixir_chatbot_core, in_umbrella: true}
+      {:elixir_chatbot_core, in_umbrella: true},
+      {:progress_bar, "~> 3.0"}
     ]
   end
 end
