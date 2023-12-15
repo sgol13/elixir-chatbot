@@ -12,8 +12,7 @@ defmodule Tests.EmbeddingTests do
     models = [
       {"sentence-transformers/paraphrase-MiniLM-L6-v2", nil, nil},
       {"sentence-transformers/all-MiniLM-L6-v2", nil, nil},
-      {"BAAI/bge-large-en", "Represent this sentence for searching relevant passages: ", nil,
-       nil},
+      {"BAAI/bge-large-en", "Represent this sentence for searching relevant passages: ", nil},
       {"thenlper/gte-large", nil, nil},
       {"intfloat/multilingual-e5-large", "query: ", "passage: "},
       {"intfloat/e5-large-v2", "query: ", "passage: "}
