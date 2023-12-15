@@ -6,6 +6,7 @@ defmodule Tests.EmbeddingTests do
   require Logger
 
   @output_path "data/embedding_out/"
+  @test_size 10
 
   def run(num_cases \\ nil) do
     # {model_name, question_prefix, passage_prefix}
@@ -23,7 +24,7 @@ defmodule Tests.EmbeddingTests do
     cases =
       for {model, prepend_q, prepend_p} <- models, database <- databases do
         %EmbeddingTestsCase{
-          embedding_model: model,
+          embedding_model: {:hf, model},
           similarity_metrics: :cosine,
           k: 100,
           prepend_to_question: prepend_q,
@@ -31,6 +32,17 @@ defmodule Tests.EmbeddingTests do
           docs_db: database
         }
       end
+
+    openai_cases = for database <- databases do
+      %EmbeddingTestsCase{
+        embedding_model: {:openai, "text-embedding-ada-002"},
+        similarity_metrics: :cosine,
+        k: 100,
+        docs_db: database
+      }
+    end
+
+    cases = Enum.concat(openai_cases, cases)
 
     test_multiple_cases(cases, num_cases)
   end
