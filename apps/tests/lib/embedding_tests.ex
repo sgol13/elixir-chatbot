@@ -73,7 +73,7 @@ defmodule Tests.EmbeddingTests do
         num_cases
       )
 
-    [k1_accuracy, _] = histogram
+    [k1_accuracy | _] = histogram
 
     Logger.info("Test ended with success rate: #{Float.round(k1_accuracy * 100, 2)}%")
 
