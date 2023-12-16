@@ -39,7 +39,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
         response_content = parse_response(response_body)
         Logger.info("OpenAI model response [#{count_tokens(response_content)} tokens]")
 
-        {:ok, response_content, []}
+        {:ok, response_content, selected_fragments}
 
       :error ->
         :error
