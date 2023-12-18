@@ -124,12 +124,6 @@ defmodule ElixirChatbotCore.IndexServer do
     {:reply, res, index}
   end
 
-  @impl true
-  def handle_call({:lookup, text, k}, _from, index) do
-    res = SimilarityIndex.lookup(index, text, k: k)
-    {:reply, res, index}
-  end
-
   defp create_index_path(docs_db, model_name, metric) do
     model_name = String.replace(model_name, "/", "-")
 
