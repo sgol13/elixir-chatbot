@@ -40,6 +40,11 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
     {:reply, CubDB.select(db), db}
   end
 
+  @impl true
+  def handle_call(:get_size, _from, db) do
+    {:reply, CubDB.size(db), db}
+  end
+
   @spec add(DocumentationFragment.DocumentationFragment.t()) :: non_neg_integer()
   def add(documentation_fragment) do
     GenServer.call(__MODULE__, {:add, documentation_fragment})
@@ -52,6 +57,10 @@ defmodule ElixirChatbotCore.DocumentationDatabase do
 
   def get_all() do
     GenServer.call(__MODULE__, :get_all)
+  end
+
+  def size() do
+    GenServer.call(__MODULE__, :get_size)
   end
 
   defp create_docs_db_path(docs_db_name) do

@@ -8,7 +8,9 @@ defmodule Tests.EmbeddingTestsCase do
     :k,
     :docs_db,
     :prepend_to_question,
-    :prepend_to_fragment
+    :prepend_to_fragment,
+    :chunk_size,
+    :num_tests
   ]
 
   defimpl Jason.Encoder, for: EmbeddingTestsCase do
@@ -20,7 +22,9 @@ defmodule Tests.EmbeddingTestsCase do
         docs_db: params.docs_db,
         prepend_to_question: params.prepend_to_question,
         prepend_to_fragment: params.prepend_to_fragment,
-        k: params.k
+        k: params.k,
+        chunk_size: params.chunk_size,
+        num_tests: params.num_tests
       }
       |> Jason.encode!
     end

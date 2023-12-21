@@ -7,28 +7,33 @@ defmodule Tests.EmbeddingTests do
 
   @output_path "data/embedding_out/"
 
-  def run(num_cases \\ nil, include_openai \\ false) do
-    # {model_name, question_prefix, passage_prefix}
+  def run(include_openai \\ false) do
+    # {model_name, question_prefix, passage_prefix, num_tests}
     models = [
-      {"sentence-transformers/paraphrase-MiniLM-L6-v2", nil, nil},
-      {"sentence-transformers/all-MiniLM-L6-v2", nil, nil},
-      {"BAAI/bge-large-en", "Represent this sentence for searching relevant passages: ", nil},
-      {"thenlper/gte-large", nil, nil},
-      {"intfloat/multilingual-e5-large", "query: ", "passage: "},
-      {"intfloat/e5-large-v2", "query: ", "passage: "}
+      {"intfloat/multilingual-e5-large", "query: ", "passage: ", 2000},
+      {"intfloat/e5-large-v2", "query: ", "passage: ", 2000},
+      {"sentence-transformers/paraphrase-MiniLM-L6-v2", nil, nil, 2000},
+      {"sentence-transformers/all-MiniLM-L6-v2", nil, nil, 2000},
+      {"BAAI/bge-large-en", "Represent this sentence for searching relevant passages: ", nil,
+       2000},
+      {"thenlper/gte-large", nil, nil, 2000}
     ]
 
-    databases = ["test-elixir-only", "test-popular-packages"]
+    databases =
+      ["test-v2-elixir-only", "test-v2-popular-packages"]
+      |> Enum.flat_map(&[&1, "#{&1}-more-fragments", "#{&1}-naiive"])
 
     cases =
-      for {model, prepend_q, prepend_p} <- models, database <- databases do
+      for {model, prepend_q, prepend_p, num_tests} <- models, database <- databases do
         %EmbeddingTestsCase{
           embedding_model: {:hf, model},
           similarity_metrics: :cosine,
           k: 100,
           prepend_to_question: prepend_q,
           prepend_to_fragment: prepend_p,
-          docs_db: database
+          docs_db: database,
+          num_tests: num_tests,
+          chunk_size: 4
         }
       end
 
@@ -38,7 +43,9 @@ defmodule Tests.EmbeddingTests do
           embedding_model: {:openai, "text-embedding-ada-002"},
           similarity_metrics: :cosine,
           k: 100,
-          docs_db: database
+          docs_db: database,
+          num_tests: 2000,
+          chunk_size: 256
         }
       end
 
@@ -49,19 +56,19 @@ defmodule Tests.EmbeddingTests do
         cases
       end
 
-    test_multiple_cases(cases, num_cases)
+    test_multiple_cases(cases)
   end
 
-  def test_multiple_cases(test_cases, num_cases) do
+  def test_multiple_cases(test_cases) do
     test_cases
     |> Stream.map(fn test_case ->
-      {test_case, run_test(test_case, num_cases)}
+      {test_case, run_test(test_case)}
     end)
     |> Stream.each(&save_json_file/1)
     |> Enum.count()
   end
 
-  defp run_test(test_case, num_cases) do
+  defp run_test(test_case) do
     TestSupervisor.terminate_all_children()
     {:ok, db_pid} = start_database(test_case)
     {:ok, index_pid} = start_index_server(test_case)
@@ -70,7 +77,8 @@ defmodule Tests.EmbeddingTests do
       test_embedding_model(
         Map.get(test_case, :prepend_to_question),
         Map.get(test_case, :k),
-        num_cases
+        Map.get(test_case, :num_tests),
+        Map.get(test_case, :chunk_size)
       )
 
     [k1_accuracy | _] = histogram
@@ -82,16 +90,17 @@ defmodule Tests.EmbeddingTests do
     histogram
   end
 
-  defp test_embedding_model(prepend, k, num_cases) do
+  defp test_embedding_model(prepend, k, num_cases, chunk_size) do
     all_ids =
       DocumentationDatabase.get_all()
       |> Stream.map(fn {id, _} -> id end)
+      |> Enum.to_list()
 
     all_ids =
-      if !is_nil(num_cases) do
+      if !is_nil(num_cases) && num_cases < length(all_ids) do
         Enum.take_random(all_ids, num_cases)
       else
-        Enum.to_list(all_ids)
+        all_ids
       end
 
     all_ids_len = length(all_ids)
@@ -99,51 +108,71 @@ defmodule Tests.EmbeddingTests do
     histogram =
       all_ids
       |> Stream.with_index(1)
-      |> Stream.map(fn {id, i} ->
-        ProgressBar.render(i, all_ids_len)
+      |> Stream.chunk_every(chunk_size)
+      |> Stream.map(&Enum.unzip/1)
+      |> Stream.flat_map(fn {ids, is} ->
+        questions =
+          ids
+          |> Enum.map(
+            &(DocumentationDatabase.get(&1)
+              |> create_question(prepend))
+          )
 
-        DocumentationDatabase.get(id)
-        |> create_question(prepend)
-        |> check_index(k, id)
-      end)
-      |> Enum.reduce(for(_ <- 1..k, do: 0), fn res, histogram ->
-        case res do
-          {:ok, i} ->
-            histogram
-            |> Enum.with_index()
-            |> Enum.map(fn {hist_hits, hist_i} ->
-              if hist_i < i do
-                hist_hits
-              else
-                hist_hits + 1
-              end
-            end)
+        res = check_index(questions, k, ids)
 
-          _ ->
-            histogram
-        end
+        is
+        |> Enum.max()
+        |> ProgressBar.render(all_ids_len)
+
+        res
       end)
+      |> Enum.reduce(for(_ <- 1..k, do: 0), &construct_histogram/2)
 
     histogram |> Enum.map(fn hits -> hits / all_ids_len end)
   end
 
-  defp check_index(question, k, id) do
-    {:ok, res} = IndexServer.lookup(question, k)
+  defp construct_histogram(res, histogram) do
+    case res do
+      {:ok, i} ->
+        histogram
+        |> Enum.with_index()
+        |> Enum.map(fn {hist_hits, hist_i} ->
+          if hist_i < i do
+            hist_hits
+          else
+            hist_hits + 1
+          end
+        end)
 
-    index = res |> Nx.to_list() |> List.flatten() |> Enum.find_index(&(&1 == id))
-
-    if is_nil(index) do
-      :mismatch
-    else
-      {:ok, index}
+      _ ->
+        histogram
     end
+  end
+
+  defp check_index(questions, k, ids) do
+    {:ok, res} = IndexServer.lookup(questions, k)
+
+    res
+    |> Nx.to_list()
+    |> Enum.zip(ids)
+    |> Enum.map(fn {res_ids, id} ->
+      index =
+        List.flatten(res_ids)
+        |> Enum.find_index(&(&1 == id))
+
+      if is_nil(index) do
+        :mismatch
+      else
+        {:ok, index}
+      end
+    end)
   end
 
   defp create_question(fragment, prepend) do
     prompt =
       case fragment.type do
-        :function -> "How does #{fragment.function_signature} work in Elixir?"
-        :module -> "What is a #{fragment.source_module} in Elixir?"
+        :function -> "How does #{fragment.function_signature} work?"
+        kind when kind in [:module, :callback, :type] -> "What is #{fragment.source_module}?"
         _ -> "What's that? #{fragment.source_module}"
       end
 
@@ -160,10 +189,19 @@ defmodule Tests.EmbeddingTests do
     |> TestSupervisor.start_child()
   end
 
-  defp start_index_server(test_case) do
+  defp start_index_server(
+         %EmbeddingTestsCase{
+           prepend_to_fragment: prepend_to_fragment,
+           chunk_size: chunk_size,
+           docs_db: docs_db
+         } = test_case
+       ) do
     test_case
     |> EmbeddingTestsCase.to_embedding_params()
-    |> IndexServer.child_spec(test_case.docs_db, test_case.prepend_to_fragment)
+    |> IndexServer.child_spec(docs_db,
+      prepend_to_fragment: prepend_to_fragment,
+      chunk_size: chunk_size
+    )
     |> TestSupervisor.start_child()
   end
 

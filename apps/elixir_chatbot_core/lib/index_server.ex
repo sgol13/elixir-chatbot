@@ -12,8 +12,9 @@ defmodule ElixirChatbotCore.IndexServer do
     GenServer.start_link(__MODULE__, params, name: __MODULE__)
   end
 
-  def child_spec(embedding_params, docs_db_name, prepend_to_fragment \\ nil) do
+  def child_spec(embedding_params, docs_db_name, opts \\ []) do
     {_, model_name} = embedding_params.embedding_model
+
     path =
       create_index_path(
         docs_db_name,
@@ -23,7 +24,7 @@ defmodule ElixirChatbotCore.IndexServer do
 
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [path, embedding_params, prepend_to_fragment]},
+      start: {__MODULE__, :start_link, [path, embedding_params, opts]},
       type: :worker
     }
   end
@@ -44,16 +45,22 @@ defmodule ElixirChatbotCore.IndexServer do
   def init(
         {path,
          %EmbeddingParameters{
-            embedding_model: model_config,
-            similarity_metrics: similarity_metrics
-         },
-        prepend_to_fragment}
+           embedding_model: model_config,
+           similarity_metrics: similarity_metrics
+         }, opts}
       ) do
+    prepend_to_fragment = Keyword.get(opts, :prepend_to_fragment)
+
+    chunk_size =
+      Keyword.get(
+        opts,
+        :chunk_size,
+        Application.fetch_env!(:chatbot, :hnsw_data_import_padding_chunk_size)
+      )
 
     embedding_model =
       case model_config do
         {:hf, model_name} ->
-          chunk_size = Application.fetch_env!(:chatbot, :hnsw_data_import_padding_chunk_size)
           EmbeddingModel.HuggingfaceModel.new(model_name, chunk_size)
 
         {:openai, _model_name} ->
@@ -73,10 +80,12 @@ defmodule ElixirChatbotCore.IndexServer do
 
       Logger.info("Populating the HNSW index")
 
+      num_total = DocumentationDatabase.size()
+
       num_processed =
         DocumentationDatabase.get_all()
         |> Stream.with_index(1)
-        |> Stream.chunk_every(Application.fetch_env!(:chatbot, :hnsw_data_import_batch_size))
+        |> Stream.chunk_every(chunk_size)
         |> Stream.map(fn entries ->
           entries_preprocessed =
             entries
@@ -94,7 +103,7 @@ defmodule ElixirChatbotCore.IndexServer do
           end
 
           i = entries |> Stream.map(fn {_, i} -> i end) |> Enum.max(fn -> 0 end)
-          Logger.info("Processed #{i} fragments...")
+          ProgressBar.render(i, num_total)
           i
         end)
         |> Enum.max(fn -> 0 end)

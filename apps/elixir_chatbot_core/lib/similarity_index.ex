@@ -4,12 +4,15 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   alias ElixirChatbotCore.EmbeddingModel
   defstruct [:index, :embedding_model]
 
+  @type t :: %__MODULE__{
+          index: %HNSWLib.Index{},
+          embedding_model: EmbeddingModel.EmbeddingModel.t()
+        }
+
   @max_elements 20_000
 
   @spec save_index(
-          %ElixirChatbotCore.SimilarityIndex{
-            :index => %HNSWLib.Index{dim: any, reference: any, space: any}
-          },
+          __MODULE__.t(),
           binary
         ) :: {:error, binary} | {:ok, integer}
   def save_index(%SimilarityIndex{index: index}, path) do
@@ -17,14 +20,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   end
 
   @spec load_index(String.t(), EmbeddingModel.EmbeddingModel.t(), :cosine | :ip | :l2) ::
-          %ElixirChatbotCore.SimilarityIndex{
-            embedding_model: EmbeddingModel.EmbeddingModel.t(),
-            index: %HNSWLib.Index{
-              dim: non_neg_integer,
-              reference: any,
-              space: :cosine | :ip | :l2
-            }
-          }
+          __MODULE__.t()
   def load_index(path, embedding_model, similarity_metrics) do
     {:ok, index} =
       HNSWLib.Index.load_index(
@@ -38,10 +34,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   end
 
   @spec create_model(EmbeddingModel.EmbeddingModel.t(), :cosine | :ip | :l2) ::
-      %ElixirChatbotCore.SimilarityIndex{
-          embedding_model: EmbeddingModel.EmbeddingModel.t(),
-          index: %HNSWLib.Index{dim: non_neg_integer, reference: any, space: :cosine | :ip | :l2}
-        }
+          __MODULE__.t()
   def create_model(embedding_model, similarity_metrics) do
     {:ok, index} =
       HNSWLib.Index.new(
@@ -54,10 +47,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   end
 
   @spec add(
-          %ElixirChatbotCore.SimilarityIndex{
-            :embedding_model => EmbeddingModel.EmbeddingModel.t(),
-            :index => %HNSWLib.Index{dim: any, reference: any, space: any}
-          },
+          __MODULE__.t(),
           non_neg_integer(),
           binary
         ) :: :ok | {:error, String.t()}
@@ -70,10 +60,7 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   end
 
   @spec add_many(
-          %ElixirChatbotCore.SimilarityIndex{
-            :embedding_model => any,
-            :index => %HNSWLib.Index{dim: any, reference: any, space: any}
-          },
+          __MODULE__.t(),
           Enumerable.t({non_neg_integer(), String.t()})
         ) :: :ok | {:error, String.t()}
   def add_many(index, entries) do
@@ -92,17 +79,18 @@ defmodule ElixirChatbotCore.SimilarityIndex do
   end
 
   @spec lookup(
-          %ElixirChatbotCore.SimilarityIndex{
-            :embedding_model => EmbeddingModel.EmbeddingModel.t(),
-            :index => %HNSWLib.Index{dim: any, reference: any, space: any}
-          },
-          String.t(),
+          __MODULE__.t(),
+          String.t() | [String.t()],
           non_neg_integer()
         ) :: {:ok, Nx.Tensor.t()} | {:error, String.t()}
   def lookup(index, text, k) do
     %SimilarityIndex{index: index, embedding_model: embedding_model} = index
 
-    {:ok, embedding} = EmbeddingModel.EmbeddingModel.compute(embedding_model, text)
+    {:ok, embedding} = if is_list(text) do
+      EmbeddingModel.EmbeddingModel.compute_many(embedding_model, text)
+    else
+      EmbeddingModel.EmbeddingModel.compute(embedding_model, text)
+    end
 
     {:ok, labels, _dists} = HNSWLib.Index.knn_query(index, embedding, k: k)
     {:ok, labels}
