@@ -100,7 +100,7 @@ defmodule ElixirChatbotCore.DocumentationManager do
         )
       end
     else
-      {:error, e} ->
+      _ ->
         []
     end
   end
