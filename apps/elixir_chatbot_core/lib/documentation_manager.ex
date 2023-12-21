@@ -101,10 +101,6 @@ defmodule ElixirChatbotCore.DocumentationManager do
       end
     else
       {:error, e} ->
-        Logger.error(
-          "Error while reading documentation for module #{Atom.to_string(module)}: #{e}"
-        )
-
         []
     end
   end
