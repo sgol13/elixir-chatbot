@@ -78,7 +78,7 @@ defmodule ElixirChatbotCore.DocumentationManager do
     with {:ok, module_doc, docs} <- module_doc(module) do
       docstream =
         docs
-        |> Stream.filter(fn {_, _, doc} -> doc != :none && doc != :hidden end)
+        |> Stream.filter(fn {_, _, _, doc} -> doc != :none && doc != :hidden end)
         |> Stream.flat_map(fn doc ->
           DocumentationManager.DocumentationFragment.other_to_fragment(
             module,
