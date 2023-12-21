@@ -24,11 +24,6 @@ defmodule Tests.DocsFetcher do
       |> Stream.with_index(1)
       |> Stream.map(fn {e, i} ->
         DocumentationDatabase.add(e)
-
-        if rem(i, 100) == 0 do
-          Logger.info("Processed #{i} fragments...")
-        end
-
         i
       end)
       |> Enum.max(fn -> 0 end)

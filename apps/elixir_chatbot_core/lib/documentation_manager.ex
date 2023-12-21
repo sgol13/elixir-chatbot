@@ -18,8 +18,15 @@ defmodule ElixirChatbotCore.DocumentationManager do
   def documentation_fragments(opts \\ []) do
     allowed_modules = Keyword.get(opts, :allowed_modules, [])
 
-    loaded_modules()
-    |> Stream.filter(fn module ->
+    loaded_modules =
+      Application.loaded_applications()
+      |> Enum.flat_map(fn {app, _, _} -> Application.spec(app, :modules) end)
+
+    num_modules = length(loaded_modules)
+
+    loaded_modules
+    |> Stream.with_index(1)
+    |> Stream.filter(fn {module, _} ->
       Enum.empty?(allowed_modules) || Enum.member?(allowed_modules, module) ||
         Enum.any?(allowed_modules, fn allowed_module ->
           String.starts_with?(
@@ -28,14 +35,11 @@ defmodule ElixirChatbotCore.DocumentationManager do
           )
         end)
     end)
-    |> Stream.flat_map(fn module ->
-      doc_chunks(module, opts)
+    |> Stream.flat_map(fn {module, i} ->
+      res = doc_chunks(module, opts)
+      ProgressBar.render(i, num_modules)
+      res
     end)
-  end
-
-  defp loaded_modules() do
-    Application.loaded_applications()
-    |> Stream.flat_map(fn {app, _, _} -> Application.spec(app, :modules) end)
   end
 
   defp doc_map_to_binary(doc) do
@@ -49,8 +53,15 @@ defmodule ElixirChatbotCore.DocumentationManager do
 
   defp module_doc(module) do
     case Code.fetch_docs(module) do
-      {:docs_v1, _, _, "text/markdown", module_doc, _, _} ->
-        {:ok, module_doc |> doc_map_to_binary()}
+      {:docs_v1, _, _, "text/markdown", module_doc, _, other_docs} ->
+        other_docs =
+          other_docs
+          |> Stream.map(fn {{kind, name, arity}, _, sig, doc, _} ->
+            sig_alternate = "#{Atom.to_string(name)}/#{arity}"
+            {kind, sig, sig_alternate, doc |> doc_map_to_binary()}
+          end)
+
+        {:ok, module_doc |> doc_map_to_binary(), other_docs}
 
       {:docs_v1, _, _, _, _, _, _} ->
         {:ok, :none}
@@ -63,32 +74,13 @@ defmodule ElixirChatbotCore.DocumentationManager do
     end
   end
 
-  defp function_docs(module) do
-    case Code.fetch_docs(module) do
-      {:docs_v1, _, _, "text/markdown", _, _, docs} ->
-        {:ok,
-         docs
-         |> Stream.map(fn {_, _, sig, doc, _} -> {sig, doc |> doc_map_to_binary()} end)}
-
-      {:docs_v1, _, _, _, _, _, _} ->
-        {:ok, []}
-
-      {:error, :module_not_found} ->
-        {:error, :module_not_found}
-
-      {:error, :chunk_not_found} ->
-        {:error, :module_not_found}
-    end
-  end
-
   defp doc_chunks(module, opts) do
-    with {:ok, module_doc} <- module_doc(module),
-         {:ok, docs} <- function_docs(module) do
+    with {:ok, module_doc, docs} <- module_doc(module) do
       docstream =
         docs
-        |> Stream.filter(fn {_, doc} -> doc != :none && doc != :hidden end)
+        |> Stream.filter(fn {_, _, doc} -> doc != :none && doc != :hidden end)
         |> Stream.flat_map(fn doc ->
-          DocumentationManager.DocumentationFragment.function_to_fragment(
+          DocumentationManager.DocumentationFragment.other_to_fragment(
             module,
             doc,
             opts

@@ -31,12 +31,16 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
     end
   end
 
-  @spec function_to_fragment(atom, {any, String.t()}, keyword()) :: Enumerable.t(__MODULE__.t())
-  def function_to_fragment(module, {sig, doc}, opts \\ []) do
+  @spec other_to_fragment(atom, {atom(), any, String.t()}, keyword()) :: Enumerable.t(__MODULE__.t())
+  def other_to_fragment(module, {kind, sig, alt_sig, doc}, opts \\ []) do
+    sig = case sig do
+      [first_sig | _] -> first_sig
+      _ -> alt_sig
+    end
     strings_by_headings(doc, opts)
     |> Stream.map(fn doc ->
       %__MODULE__{
-        type: :function,
+        type: kind,
         fragment_text: "#{Atom.to_string(module)}.#{sig}\n\n#{doc}",
         source_module: module,
         function_signature: sig
@@ -60,8 +64,8 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
 
   defp strings_by_headings(text, opts) do
     max_token_count = Keyword.get(opts, :max_token_count)
-    headings_split = Keyword.get(opts, :headings_split)
-    prepend_parent_heading = Keyword.get(opts, :prepend_parent_heading)
+    headings_split = Keyword.get(opts, :headings_split, 1)
+    prepend_parent_heading = Keyword.get(opts, :prepend_parent_heading, false)
 
     strings_by_headings(headings_split, prepend_parent_heading, max_token_count, text, 1)
   end
