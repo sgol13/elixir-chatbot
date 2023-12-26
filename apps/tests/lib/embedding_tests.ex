@@ -3,6 +3,7 @@ defmodule Tests.EmbeddingTests do
   alias ElixirChatbotCore.IndexServer
   alias Tests.EmbeddingTestsCase
   alias Tests.TestSupervisor
+  alias Tests.TestUtils
   require Logger
 
   @output_path "data/embedding_out/"
@@ -174,12 +175,7 @@ defmodule Tests.EmbeddingTests do
     }
 
     json_string = Jason.encode!(content)
-    filename = "#{@output_path}/#{generate_output_name()}.json"
+    filename = "#{@output_path}/#{TestUtils.generate_output_name()}.json"
     File.write!(filename, json_string)
-  end
-
-  defp generate_output_name do
-    DateTime.utc_now()
-    |> Timex.format!("{YYYY}-{0M}-{0D}-{h24}{m}{s}")
   end
 end

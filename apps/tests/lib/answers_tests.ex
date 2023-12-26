@@ -1,18 +1,18 @@
 defmodule Tests.AnswersTests do
   alias ElixirChatbotCore.GenerationModel.OpenAiModel
-  alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
   alias ElixirChatbotCore.DocumentationDatabase
   alias ElixirChatbotCore.Chatbot
   alias ElixirChatbotCore.IndexServer
   alias Tests.TestSupervisor
   alias Tests.EmbeddingTestsCase
+  alias Tests.TestUtils
 
   @questions_dir "data/answers_in/"
   @responses_dir "data/answers_out/"
 
   # Tests.AnswersTests.run
   def run do
-    run("questions_2.txt", "responses_2.html")
+    run("questions_1.txt", "responses_1_elixir_only_new_e5.html")
   end
 
   def run(questions_file, responses_file) do
@@ -23,9 +23,9 @@ defmodule Tests.AnswersTests do
 
   defp run_with_paths(questions_path, responses_path) do
     test_case = %EmbeddingTestsCase{
-      embedding_model: {:openai, "text-embedding-ada-002"},
+      embedding_model: {:openai, "intfloat/multilingual-e5-large"},
       similarity_metrics: :cosine,
-      docs_db: "test-elixir-plus-new"
+      docs_db: "test-elixir-only"
     }
 
     TestSupervisor.terminate_all_children()
@@ -50,8 +50,8 @@ defmodule Tests.AnswersTests do
     |> Stream.map(&String.trim/1)
     |> Stream.with_index(1)
     |> Stream.map(&ask_question/1)
-    |> Stream.map(&build_html_result/1)
-    |> concatenate_texts
+    |> Stream.map(&build_html_output/1)
+    |> TestUtils.concatenate_texts
   end
 
   defp ask_question({question, index}) do
@@ -60,18 +60,9 @@ defmodule Tests.AnswersTests do
     {index, question, fragments, response}
   end
 
-  defp build_html_result({index, question, fragments, response}) do
+  defp build_html_output({index, question, fragments, response}) do
     rendered_response = Earmark.as_html!(response)
-
-    rendered_fragments =
-      fragments
-      |> Stream.map(fn %DocumentationFragment{fragment_text: text, source_module: source} ->
-        """
-          <b> #{source} </b>
-          <div style="background-color: #f0f0f0"> #{Earmark.as_html!(text)} </div>
-        """
-      end)
-    |> concatenate_texts
+    rendered_fragments = TestUtils.fragments_to_html(fragments)
 
     """
     <h3> #{index}: #{question} </h3>
@@ -100,10 +91,5 @@ defmodule Tests.AnswersTests do
     test_case.docs_db
     |> DocumentationDatabase.child_spec()
     |> TestSupervisor.start_child()
-  end
-
-  defp concatenate_texts(texts) do
-    texts
-    |> Enum.reduce("", fn string, acc -> acc <> string end)
   end
 end

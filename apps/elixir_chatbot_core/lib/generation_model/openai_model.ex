@@ -34,7 +34,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
     total_tokens = guideline_tokens + question_tokens + docs_tokens
     Logger.info("OpenAI model request [#{total_tokens} tokens]")
 
-    case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 3) do
+    case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 10) do
       {:ok, response_body} ->
         response_content = parse_response(response_body)
         Logger.info("OpenAI model response [#{count_tokens(response_content)} tokens]")

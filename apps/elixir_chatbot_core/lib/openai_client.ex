@@ -36,6 +36,7 @@ defmodule ElixirChatbotCore.OpenAiClient do
 
       _ when retries > 0 ->
         Logger.info("OpenAI API retry (#{retries} left)")
+        :timer.sleep(1000)
         request_with_retries(request_fn, retries - 1)
 
       _ ->
