@@ -12,7 +12,7 @@ defmodule Tests.AnswersTests do
 
   # Tests.AnswersTests.run
   def run do
-    run("questions_3.txt", "test.html")
+    run("questions_2.txt", "test.html")
   end
 
   def run(questions_file, responses_file) do
@@ -81,12 +81,14 @@ defmodule Tests.AnswersTests do
   end
 
   defp build_html_metadata(metadata) do
+    sorted_metadata = Enum.sort_by(metadata, fn {key, _value} -> key end)
+
     """
     <%= for {key, value} <- @metadata do %>
       <div><%= key %>: <%= value %></div>
     <% end %>
     """
-    |> EEx.eval_string(assigns: [metadata: metadata])
+    |> EEx.eval_string(assigns: [metadata: sorted_metadata])
   end
 
   defp start_chatbot(model) do

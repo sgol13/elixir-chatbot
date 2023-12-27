@@ -36,20 +36,19 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
     case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 6) do
       {:ok, response_body} ->
-        response_content = parse_response(response_body)
+        {response_content, usage_stats} = parse_response(response_body)
         Logger.info("OpenAI model response [#{count_tokens(response_content)} tokens]")
 
-        response_tokens = count_tokens(response_content)
-
-        metadata = %{
-          fragments: length(selected_fragments),
-          docs_tk: docs_tokens,
-          guideline_tk: guideline_tokens,
-          question_tk: question_tokens,
-          total_input_tk: total_input_tokens,
-          answer_tk: response_tokens,
-          total_tokens: total_input_tokens + response_tokens
-        }
+        metadata =
+          build_metadata(
+            selected_fragments,
+            response_content,
+            docs_tokens,
+            guideline_tokens,
+            question_tokens,
+            total_input_tokens,
+            usage_stats
+          )
 
         {:ok, response_content, selected_fragments, metadata}
 
@@ -108,11 +107,40 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   defp parse_response(response_body) do
     messages = response_body["choices"]
-    hd(messages)["message"]["content"]
+    response_content = hd(messages)["message"]["content"]
+
+    usage = response_body["usage"]
+    {response_content, usage}
   end
 
-  defp count_tokens(%DocumentationFragment{fragment_text: fragment_text}) do
-    count_tokens(fragment_text)
+  defp build_metadata(
+         selected_fragments,
+         response_content,
+         docs_tokens,
+         guideline_tokens,
+         question_tokens,
+         total_input_tokens,
+         usage_stats
+       ) do
+    response_tokens = count_tokens(response_content)
+
+    %{
+      fragments: length(selected_fragments),
+      docs_tk: docs_tokens,
+      guideline_tk: guideline_tokens,
+      question_tk: question_tokens,
+      total_input_tk: total_input_tokens,
+      answer_tk: response_tokens,
+      total_tk: total_input_tokens + response_tokens,
+      openai_completion_tk: usage_stats["completion_tokens"],
+      openai_prompt_tk: usage_stats["prompt_tokens"],
+      openai_total_tk: usage_stats["total_tokens"]
+    }
+  end
+
+  defp count_tokens(%DocumentationFragment{} = fragment) do
+    DocumentationFragment.get_docs_fragment(fragment)
+    |> count_tokens()
   end
 
   defp count_tokens(text), do: Gpt3Tokenizer.token_count(text)
