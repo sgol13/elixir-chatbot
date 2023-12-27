@@ -1,8 +1,11 @@
 defmodule Tests.DocsFetcher do
-  alias Tests.TestSupervisor
   alias ElixirChatbotCore.DocumentationDatabase
   alias ElixirChatbotCore.DocumentationManager
+  alias Tests.TestSupervisor
+  alias Tests.TestUtils
   require Logger
+
+  @output_path "data/docs_out"
 
   @spec fetch_documentation(String.t(), keyword()) :: {:ok, integer()}
   @doc """
@@ -37,6 +40,23 @@ defmodule Tests.DocsFetcher do
 
     Logger.info("Done.")
     {:ok, fragments_counter}
+  end
+
+  def fetch_documentation_to_html(opts \\ []) do
+    output =
+      DocumentationManager.documentation_fragments(opts)
+      |> build_html_output
+
+    filename = Path.join([@output_path, "#{TestUtils.generate_output_name()}.html"])
+    File.write!(filename, output)
+  end
+
+  defp build_html_output(fragments) do
+    rendered_fragments = TestUtils.fragments_to_html(fragments)
+
+    """
+      <div> #{rendered_fragments} </div>
+    """
   end
 
   defp start_database(docs_db_name) do

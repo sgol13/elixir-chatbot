@@ -73,7 +73,8 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
       nil,
       fn cur, acc ->
         heading_text =
-          if String.starts_with?(cur, String.duplicate("#", current_depth) <> " ") do
+          # Special case to not split by '## Example' headings, needs to be refactored to make it cleaner
+          if not String.starts_with?(cur, "## Example") and String.starts_with?(cur, String.duplicate("#", current_depth) <> " ") do
             {_, rest} = String.split_at(cur, current_depth)
             String.trim(rest)
           else

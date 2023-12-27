@@ -6,6 +6,7 @@ defmodule ElixirChatbotCore.OpenAiClient do
   @openai_completions_url @openai_url <> "/v1/chat/completions"
 
   @expected_http_code 200
+  @first_retry_time 1000
 
   def post_embeddings(body, opts \\ []), do: post(@openai_embeddings_url, body, opts)
 
@@ -29,14 +30,15 @@ defmodule ElixirChatbotCore.OpenAiClient do
     end
   end
 
-  defp request_with_retries(request_fn, retries) do
+  defp request_with_retries(request_fn, retries, retry_time \\ @first_retry_time) do
     case make_request(request_fn) do
       {:ok, %HTTPoison.Response{status_code: @expected_http_code}} = result ->
         result
 
       _ when retries > 0 ->
         Logger.info("OpenAI API retry (#{retries} left)")
-        request_with_retries(request_fn, retries - 1)
+        :timer.sleep(retry_time)
+        request_with_retries(request_fn, retries - 1, retry_time * 2)
 
       _ ->
         :error
@@ -70,4 +72,5 @@ defmodule ElixirChatbotCore.OpenAiClient do
   end
 
   defp get_api_key, do: Application.fetch_env!(:chatbot, :openai_api_key)
+
 end
