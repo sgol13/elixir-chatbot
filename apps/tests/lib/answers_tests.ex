@@ -12,7 +12,7 @@ defmodule Tests.AnswersTests do
 
   # Tests.AnswersTests.run
   def run do
-    run("questions_1.txt", "responses_1_elixir_only_new_e5.html")
+    run("questions_3.txt", "test.html")
   end
 
   def run(questions_file, responses_file) do

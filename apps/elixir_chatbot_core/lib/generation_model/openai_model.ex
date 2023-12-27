@@ -7,11 +7,11 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   # context size: 16_385
   @openai_model_id "gpt-3.5-turbo-1106"
-  @input_context 8192
+  @input_context 1500
 
   @guideline "You're a helpful assistant answering questions regarding Elixir programming language documentation. " <>
                "You have access to a subset of Elixir modules' documentation in a JSON format. Each element of the list consists " <>
-               "of a documentation chunk and the name of the module that it refers to. Provide answers in a markdown format."
+               "of a documentation chunk and its source (documentation of a module or a specific function). Provide answers in a markdown format."
 
   defstruct []
 
@@ -79,12 +79,21 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   defp build_docs_message(fragments) do
     fragments
-    |> Enum.map(fn %DocumentationFragment{fragment_text: text, source_module: module} ->
-      %{text: text, module: module}
+    |> Enum.map(fn fragment ->
+      %{
+        text: remove_fragment_prefix(fragment.fragment_text),
+        source: "#{fragment.source_module}.#{fragment.function_signature}"
+      }
     end)
+    |> IO.inspect()
     |> Enum.to_list()
     |> Jason.encode!()
     |> build_message(:system)
+  end
+
+  defp remove_fragment_prefix(fragment_text) do
+    Regex.replace(~r/^.*?\n\n/, fragment_text, "")
+    |> String.trim()
   end
 
   defp build_question_message(question) do
