@@ -31,15 +31,27 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
     body = build_body(selected_fragments, question)
 
-    total_tokens = guideline_tokens + question_tokens + docs_tokens
-    Logger.info("OpenAI model request [#{total_tokens} tokens]")
+    total_input_tokens = guideline_tokens + question_tokens + docs_tokens
+    Logger.info("OpenAI model request [#{total_input_tokens} tokens]")
 
     case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 6) do
       {:ok, response_body} ->
         response_content = parse_response(response_body)
         Logger.info("OpenAI model response [#{count_tokens(response_content)} tokens]")
 
-        {:ok, response_content, selected_fragments}
+        response_tokens = count_tokens(response_content)
+
+        metadata = %{
+          fragments: length(selected_fragments),
+          docs_tk: docs_tokens,
+          guideline_tk: guideline_tokens,
+          question_tk: question_tokens,
+          total_input_tk: total_input_tokens,
+          answer_tk: response_tokens,
+          total_tokens: total_input_tokens + response_tokens
+        }
+
+        {:ok, response_content, selected_fragments, metadata}
 
       :error ->
         :error
@@ -81,19 +93,13 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
     fragments
     |> Enum.map(fn fragment ->
       %{
-        text: remove_fragment_prefix(fragment.fragment_text),
+        text: DocumentationFragment.get_docs_fragment(fragment),
         source: "#{fragment.source_module}.#{fragment.function_signature}"
       }
     end)
-    |> IO.inspect()
     |> Enum.to_list()
     |> Jason.encode!()
     |> build_message(:system)
-  end
-
-  defp remove_fragment_prefix(fragment_text) do
-    Regex.replace(~r/^.*?\n\n/, fragment_text, "")
-    |> String.trim()
   end
 
   defp build_question_message(question) do

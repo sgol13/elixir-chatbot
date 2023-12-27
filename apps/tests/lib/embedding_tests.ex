@@ -174,7 +174,7 @@ defmodule Tests.EmbeddingTests do
       histogram: histogram
     }
 
-    json_string = Jason.encode!(content)
+    json_string = Jason.encode!(content, pretty: true)
     filename = Path.join([@output_path, "#{TestUtils.generate_output_name()}.json"])
     File.write!(filename, json_string)
   end

@@ -51,28 +51,42 @@ defmodule Tests.AnswersTests do
     |> Stream.with_index(1)
     |> Stream.map(&ask_question/1)
     |> Stream.map(&build_html_output/1)
-    |> Enum.join
+    |> Enum.join()
   end
 
   defp ask_question({question, index}) do
     IO.puts("#{index}: #{question}")
-    {:ok, response, fragments} = Chatbot.generate(question)
-    {index, question, fragments, response}
+    {:ok, response, fragments, metadata} = Chatbot.generate(question)
+    {index, question, response, fragments, metadata}
   end
 
-  defp build_html_output({index, question, fragments, response}) do
+  defp build_html_output({index, question, response, fragments, metadata}) do
     rendered_response = Earmark.as_html!(response)
+    rendered_metadata = build_html_metadata(metadata)
     rendered_fragments = TestUtils.fragments_to_html(fragments)
 
     """
     <h3> #{index}: #{question} </h3>
     <div> #{rendered_response} </div>
+
     <details>
-      <summary>Documentation</summary>
+      <summary>Details</summary>
+      <div> #{rendered_metadata} </div>
+      <br/>
       <div> #{rendered_fragments} </div>
     </details>
+
     <hr/>
     """
+  end
+
+  defp build_html_metadata(metadata) do
+    """
+    <%= for {key, value} <- @metadata do %>
+      <div><%= key %>: <%= value %></div>
+    <% end %>
+    """
+    |> EEx.eval_string(assigns: [metadata: metadata])
   end
 
   defp start_chatbot(model) do

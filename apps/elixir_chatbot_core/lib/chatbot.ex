@@ -29,9 +29,9 @@ defmodule ElixirChatbotCore.Chatbot do
   def handle_call({:generate, message}, _from, model) do
     fragments = lookup_question(message, 100)
 
-    {:ok, response, selected_fragments} = GenerationModel.generate(model, message, fragments)
+    {:ok, response, selected_fragments, metadata} = GenerationModel.generate(model, message, fragments)
 
-    {:reply, {:ok, response, selected_fragments}, model}
+    {:reply, {:ok, response, selected_fragments, metadata}, model}
   end
 
   defp lookup_question(question_text, k) do
