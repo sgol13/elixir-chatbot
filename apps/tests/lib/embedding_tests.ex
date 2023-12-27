@@ -175,7 +175,7 @@ defmodule Tests.EmbeddingTests do
     }
 
     json_string = Jason.encode!(content)
-    filename = "#{@output_path}/#{TestUtils.generate_output_name()}.json"
+    filename = Path.join([@output_path, "#{TestUtils.generate_output_name()}.json"])
     File.write!(filename, json_string)
   end
 end

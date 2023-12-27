@@ -18,7 +18,7 @@ defmodule ElixirChatbotCore.EmbeddingModel.OpenAiModel do
   def compute_many(texts) do
     body = build_body(texts)
 
-    case OpenAiClient.post_embeddings(body, recv_timeout: 8000, retries: 3) do
+    case OpenAiClient.post_embeddings(body, recv_timeout: 8000, retries: 6) do
       {:ok, response_body} ->
         {:ok, parse_response(response_body)}
 

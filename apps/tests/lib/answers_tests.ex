@@ -51,7 +51,7 @@ defmodule Tests.AnswersTests do
     |> Stream.with_index(1)
     |> Stream.map(&ask_question/1)
     |> Stream.map(&build_html_output/1)
-    |> TestUtils.concatenate_texts
+    |> Enum.join
   end
 
   defp ask_question({question, index}) do

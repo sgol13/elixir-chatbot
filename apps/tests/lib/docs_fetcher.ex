@@ -42,13 +42,12 @@ defmodule Tests.DocsFetcher do
     {:ok, fragments_counter}
   end
 
-  # Tests.DocsFetcher.fetch_documentation_to_html(max_token_count: 500, headings_split: 2, prepend_parent_heading: false, allowed_modules: [Atom])
   def fetch_documentation_to_html(opts \\ []) do
     output =
       DocumentationManager.documentation_fragments(opts)
       |> build_html_output
 
-    filename = "#{@output_path}/#{TestUtils.generate_output_name()}.html"
+    filename = Path.join([@output_path, "#{TestUtils.generate_output_name()}.html"])
     File.write!(filename, output)
   end
 

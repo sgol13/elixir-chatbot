@@ -16,11 +16,6 @@ defmodule Tests.TestUtils do
         <div style="background-color: #f0f0f0"> #{Earmark.as_html!(fragment.fragment_text)} </div>
       """
     end)
-    |> concatenate_texts
-  end
-
-  def concatenate_texts(texts) do
-    texts
-    |> Enum.reduce("", fn string, acc -> acc <> string end)
+    |> Enum.join
   end
 end
