@@ -1,8 +1,13 @@
 defmodule Tests.TestUtils do
   alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
 
+  @spec generate_output_path(String.t(), String.t()) :: String.t()
+  def generate_output_path(output_dir_path, file_extension) do
+    Path.join(output_dir_path, "#{generate_output_name()}.#{file_extension}")
+  end
+
   @spec generate_output_name() :: String.t()
-  def generate_output_name do
+  defp generate_output_name do
     DateTime.utc_now()
     |> Timex.format!("{YYYY}-{0M}-{0D}-{h24}{m}{s}")
   end

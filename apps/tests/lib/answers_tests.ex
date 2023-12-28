@@ -1,27 +1,21 @@
 defmodule Tests.AnswersTests do
+  require Logger
   alias ElixirChatbotCore.GenerationModel.OpenAiModel
-  alias ElixirChatbotCore.DocumentationDatabase
   alias ElixirChatbotCore.Chatbot
-  alias ElixirChatbotCore.IndexServer
   alias Tests.TestSupervisor
   alias Tests.EmbeddingTestsCase
   alias Tests.TestUtils
 
-  @questions_dir "data/answers_in/"
-  @responses_dir "data/answers_out/"
+  @questions_path "data/answers_in/"
+  @output_path "data/answers_out/"
 
   # Tests.AnswersTests.run
   def run do
-    run("questions_2.txt", "test.html")
+    run("questions_3.txt")
   end
 
-  def run(questions_file, responses_file) do
-    questions_path = @questions_dir <> questions_file
-    responses_path = @responses_dir <> responses_file
-    run_with_paths(questions_path, responses_path)
-  end
-
-  defp run_with_paths(questions_path, responses_path) do
+  def run(questions_file) do
+    questions_path = @questions_path <> questions_file
     test_case = %EmbeddingTestsCase{
       embedding_model: {:openai, "intfloat/multilingual-e5-large"},
       similarity_metrics: :cosine,
@@ -29,15 +23,16 @@ defmodule Tests.AnswersTests do
     }
 
     TestSupervisor.terminate_all_children()
-    {:ok, gen_model_pid} = start_chatbot(OpenAiModel.new())
-    {:ok, db_pid} = start_database(test_case)
-    {:ok, index_pid} = start_index_server(test_case)
+    {:ok, gen_model_pid} = TestSupervisor.start_chatbot(OpenAiModel.new())
+    {:ok, db_pid} = TestSupervisor.start_database(test_case)
+    {:ok, index_pid} = TestSupervisor.start_index_server(test_case)
 
     output =
       File.stream!(questions_path)
       |> execute_tests
 
-    File.write!(responses_path, output)
+    filename = TestUtils.generate_output_path(@output_path, "html")
+    File.write!(filename, output)
 
     TestSupervisor.terminate_child(gen_model_pid)
     TestSupervisor.terminate_child(db_pid)
@@ -55,7 +50,7 @@ defmodule Tests.AnswersTests do
   end
 
   defp ask_question({question, index}) do
-    IO.puts("#{index}: #{question}")
+    Logger.info("Testing question #{index}: #{question}")
     {:ok, response, fragments, metadata} = Chatbot.generate(question)
     {index, question, response, fragments, metadata}
   end
@@ -89,23 +84,5 @@ defmodule Tests.AnswersTests do
     <% end %>
     """
     |> EEx.eval_string(assigns: [metadata: sorted_metadata])
-  end
-
-  defp start_chatbot(model) do
-    ElixirChatbotCore.Chatbot.child_spec(model)
-    |> TestSupervisor.start_child()
-  end
-
-  defp start_index_server(test_case) do
-    test_case
-    |> EmbeddingTestsCase.to_embedding_params()
-    |> IndexServer.child_spec(test_case.docs_db)
-    |> TestSupervisor.start_child()
-  end
-
-  defp start_database(test_case) do
-    test_case.docs_db
-    |> DocumentationDatabase.child_spec()
-    |> TestSupervisor.start_child()
   end
 end
