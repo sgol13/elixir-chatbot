@@ -64,8 +64,8 @@ defmodule Tests.EmbeddingTests do
 
   defp run_test(test_case, num_cases) do
     TestSupervisor.terminate_all_children()
-    {:ok, db_pid} = start_database(test_case)
-    {:ok, index_pid} = start_index_server(test_case)
+    {:ok, db_pid} = TestSupervisor.start_database(test_case)
+    {:ok, index_pid} = TestSupervisor.start_index_server(test_case)
 
     histogram =
       test_embedding_model(
@@ -155,27 +155,14 @@ defmodule Tests.EmbeddingTests do
     end
   end
 
-  defp start_database(test_case) do
-    test_case.docs_db
-    |> DocumentationDatabase.child_spec()
-    |> TestSupervisor.start_child()
-  end
-
-  defp start_index_server(test_case) do
-    test_case
-    |> EmbeddingTestsCase.to_embedding_params()
-    |> IndexServer.child_spec(test_case.docs_db, test_case.prepend_to_fragment)
-    |> TestSupervisor.start_child()
-  end
-
   defp save_json_file({test_case, histogram}) do
     content = %{
       params: test_case,
       histogram: histogram
     }
 
-    json_string = Jason.encode!(content)
-    filename = Path.join([@output_path, "#{TestUtils.generate_output_name()}.json"])
+    json_string = Jason.encode!(content, pretty: true)
+    filename = TestUtils.generate_output_path(@output_path, "json")
     File.write!(filename, json_string)
   end
 end

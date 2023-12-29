@@ -20,7 +20,7 @@ defmodule Tests.DocsFetcher do
   """
   def fetch_documentation(docs_db_name, opts \\ []) do
     TestSupervisor.terminate_all_children()
-    {:ok, db_pid} = start_database(docs_db_name)
+    {:ok, db_pid} = TestSupervisor.start_database(docs_db_name)
 
     fragments_counter =
       DocumentationManager.documentation_fragments(opts)
@@ -47,7 +47,7 @@ defmodule Tests.DocsFetcher do
       DocumentationManager.documentation_fragments(opts)
       |> build_html_output
 
-    filename = Path.join([@output_path, "#{TestUtils.generate_output_name()}.html"])
+    filename = TestUtils.generate_output_path(@output_path, "html")
     File.write!(filename, output)
   end
 
@@ -57,11 +57,5 @@ defmodule Tests.DocsFetcher do
     """
       <div> #{rendered_fragments} </div>
     """
-  end
-
-  defp start_database(docs_db_name) do
-    docs_db_name
-    |> DocumentationDatabase.child_spec()
-    |> TestSupervisor.start_child()
   end
 end

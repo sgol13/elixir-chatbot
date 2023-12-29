@@ -1,4 +1,5 @@
 defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
+  alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
   require Logger
   defstruct [:type, :fragment_text, :source_module, :function_signature]
 
@@ -8,6 +9,12 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
           source_module: atom(),
           type: atom()
         }
+
+  @spec get_docs_fragment(DocumentationFragment.t()) :: String.t()
+  def get_docs_fragment(fragment) do
+    Regex.replace(~r/^.*?\n\n/, fragment.fragment_text, "")
+    |> String.trim()
+  end
 
   @spec module_to_fragment(atom, String.t(), keyword()) :: Enumerable.t(__MODULE__.t())
   def module_to_fragment(module, doc, opts) do
@@ -72,9 +79,10 @@ defmodule ElixirChatbotCore.DocumentationManager.DocumentationFragment do
     |> Stream.chunk_while(
       nil,
       fn cur, acc ->
+        # Special case to not split by '## Example' headings, needs to be refactored to make it cleaner
         heading_text =
-          # Special case to not split by '## Example' headings, needs to be refactored to make it cleaner
-          if not String.starts_with?(cur, "## Example") and String.starts_with?(cur, String.duplicate("#", current_depth) <> " ") do
+          if not String.starts_with?(cur, "## Example") and
+               String.starts_with?(cur, String.duplicate("#", current_depth) <> " ") do
             {_, rest} = String.split_at(cur, current_depth)
             String.trim(rest)
           else

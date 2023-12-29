@@ -7,11 +7,11 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   # context size: 16_385
   @openai_model_id "gpt-3.5-turbo-1106"
-  @input_context 8192
+  @input_context 1500
 
   @guideline "You're a helpful assistant answering questions regarding Elixir programming language documentation. " <>
                "You have access to a subset of Elixir modules' documentation in a JSON format. Each element of the list consists " <>
-               "of a documentation chunk and the name of the module that it refers to. Provide answers in a markdown format."
+               "of a documentation chunk and its source (documentation of a module or a specific function). Provide answers in a markdown format."
 
   defstruct []
 
@@ -31,15 +31,26 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
     body = build_body(selected_fragments, question)
 
-    total_tokens = guideline_tokens + question_tokens + docs_tokens
-    Logger.info("OpenAI model request [#{total_tokens} tokens]")
+    total_input_tokens = guideline_tokens + question_tokens + docs_tokens
+    Logger.info("OpenAI model request [#{total_input_tokens} tokens]")
 
     case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 6) do
       {:ok, response_body} ->
-        response_content = parse_response(response_body)
+        {response_content, usage_stats} = parse_response(response_body)
         Logger.info("OpenAI model response [#{count_tokens(response_content)} tokens]")
 
-        {:ok, response_content, selected_fragments}
+        metadata =
+          build_metadata(
+            selected_fragments,
+            response_content,
+            docs_tokens,
+            guideline_tokens,
+            question_tokens,
+            total_input_tokens,
+            usage_stats
+          )
+
+        {:ok, response_content, selected_fragments, metadata}
 
       :error ->
         :error
@@ -79,8 +90,11 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   defp build_docs_message(fragments) do
     fragments
-    |> Enum.map(fn %DocumentationFragment{fragment_text: text, source_module: module} ->
-      %{text: text, module: module}
+    |> Enum.map(fn fragment ->
+      %{
+        text: DocumentationFragment.get_docs_fragment(fragment),
+        source: "#{fragment.source_module}.#{fragment.function_signature}"
+      }
     end)
     |> Enum.to_list()
     |> Jason.encode!()
@@ -93,11 +107,40 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   defp parse_response(response_body) do
     messages = response_body["choices"]
-    hd(messages)["message"]["content"]
+    response_content = hd(messages)["message"]["content"]
+
+    usage = response_body["usage"]
+    {response_content, usage}
   end
 
-  defp count_tokens(%DocumentationFragment{fragment_text: fragment_text}) do
-    count_tokens(fragment_text)
+  defp build_metadata(
+         selected_fragments,
+         response_content,
+         docs_tokens,
+         guideline_tokens,
+         question_tokens,
+         total_input_tokens,
+         usage_stats
+       ) do
+    response_tokens = count_tokens(response_content)
+
+    %{
+      fragments: length(selected_fragments),
+      docs_tk: docs_tokens,
+      guideline_tk: guideline_tokens,
+      question_tk: question_tokens,
+      total_input_tk: total_input_tokens,
+      answer_tk: response_tokens,
+      total_tk: total_input_tokens + response_tokens,
+      openai_completion_tk: usage_stats["completion_tokens"],
+      openai_prompt_tk: usage_stats["prompt_tokens"],
+      openai_total_tk: usage_stats["total_tokens"]
+    }
+  end
+
+  defp count_tokens(%DocumentationFragment{} = fragment) do
+    DocumentationFragment.get_docs_fragment(fragment)
+    |> count_tokens()
   end
 
   defp count_tokens(text), do: Gpt3Tokenizer.token_count(text)

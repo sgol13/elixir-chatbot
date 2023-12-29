@@ -22,7 +22,7 @@ defmodule Tests.EmbeddingTestsCase do
         prepend_to_fragment: params.prepend_to_fragment,
         k: params.k
       }
-      |> Jason.encode!
+      |> Jason.encode!(pretty: true)
     end
   end
 

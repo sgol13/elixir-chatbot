@@ -1,4 +1,10 @@
 defmodule Tests.TestSupervisor do
+  alias ElixirChatbotCore.Chatbot
+  alias ElixirChatbotCore.DocumentationDatabase
+  alias ElixirChatbotCore.Chatbot
+  alias ElixirChatbotCore.IndexServer
+  alias Tests.EmbeddingTestsCase
+
   use DynamicSupervisor
 
   def start_link(_) do
@@ -10,7 +16,25 @@ defmodule Tests.TestSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_child(spec) do
+  def start_chatbot(model) do
+    Chatbot.child_spec(model)
+    |> start_child()
+  end
+
+  def start_index_server(test_case) do
+    test_case
+    |> EmbeddingTestsCase.to_embedding_params()
+    |> IndexServer.child_spec(test_case.docs_db)
+    |> start_child()
+  end
+
+  def start_database(test_case) do
+    test_case.docs_db
+    |> DocumentationDatabase.child_spec()
+    |> start_child()
+  end
+
+  defp start_child(spec) do
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
