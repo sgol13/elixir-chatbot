@@ -7,7 +7,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   # context size: 16_385
   @openai_model_id "gpt-3.5-turbo-1106"
-  @input_context 1500
+  @input_context 8192
 
   @guideline "You're a helpful assistant answering questions regarding Elixir programming language documentation. " <>
                "You have access to a subset of Elixir modules' documentation in a JSON format. Each element of the list consists " <>

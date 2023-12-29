@@ -5,9 +5,9 @@ defmodule ChatWeb.Application do
 
   use Application
 
-  @default_docs_db_name "test-elixir-plus-new"
+  @default_docs_db_name "test-v3-new"
 
-  @default_embedding_model {:openai, "text-embedding-ada-002"}
+  @default_embedding_model {:openai, "ada-002"}
   @default_similarity_metrics :cosine
 
   # @default_generation_model {:hf, "stabilityai/stablelm-tuned-alpha-3b"}
