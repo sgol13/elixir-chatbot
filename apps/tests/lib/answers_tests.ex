@@ -11,15 +11,15 @@ defmodule Tests.AnswersTests do
 
   # Tests.AnswersTests.run
   def run do
-    run("questions_3.txt")
+    run("questions_4.txt")
   end
 
   def run(questions_file) do
     questions_path = @questions_path <> questions_file
     test_case = %EmbeddingTestsCase{
-      embedding_model: {:openai, "intfloat/multilingual-e5-large"},
+      embedding_model: {:openai, "ada-002"},
       similarity_metrics: :cosine,
-      docs_db: "test-elixir-only"
+      docs_db: "test-v3-new"
     }
 
     TestSupervisor.terminate_all_children()
