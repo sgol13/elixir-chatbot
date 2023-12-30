@@ -5,9 +5,11 @@
         id={message.id}
         class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
       >
-        <p class="text-gray-800 line-clamp-2 break-words">
-          <%= message.text |> Earmark.as_html!() |> raw() %>
-        </p>
+        <div class="text-gray-800 line-clamp-2 break-words">
+          <%= message.text 
+          |> ChatWeb.Markdown.to_html()
+          |> raw() %>
+        </div>
         
         <%= if message.sender == :bot && length(message.fragments) > 0 do %>
           <div class="pt-2">
@@ -18,8 +20,11 @@
             <div class="accordion-content text-gray-500">
               <%= for fragment <- message.fragments do %>
                 <p class="accordion-fragment pt-4">
-                  <%= fragment.fragment_text %>
+                  <%= fragment.fragment_text
+                  |> ChatWeb.Markdown.to_html()
+                  |> raw() %>
                 </p>
+                <hr style="border: none; border-bottom: 1px solid lightgrey; margin: 10px;"/>
               <% end %>
             </div>
           </div>
