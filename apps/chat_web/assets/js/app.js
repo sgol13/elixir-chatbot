@@ -22,8 +22,24 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+let Hooks = {}
+Hooks.TextArea = {
+    mounted() {
+        this.el.addEventListener("keydown", e => {
+          if (e.key == "Enter" && e.shiftKey == false) {
+            e.preventDefault();
+            this.el.dispatchEvent(
+              new Event("submit", {bubbles: true, cancelable: true})
+            )
+          } else if (e.key == "Enter" && e.shiftKey == true) {
+            this.el.input.value += "\n"
+          }
+        })
+      }
+}
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}})
+let liveSocket = new LiveSocket("/live", Socket, {hooks: Hooks, params: {_csrf_token: csrfToken}})
 
 // Show progress bar on live navigation and form submits
 topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
