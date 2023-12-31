@@ -25,6 +25,13 @@ import topbar from "../vendor/topbar"
 let Hooks = {}
 Hooks.TextArea = {
     mounted() {
+        const textarea = this.el.querySelector("textarea");
+        textarea.addEventListener("keyup", e => {
+            textarea.style.height = "45px";
+            let scHeight = e.target.scrollHeight;
+            textarea.style.height = `${scHeight}px`;
+        })
+
         this.el.addEventListener("keydown", e => {
           if (e.key == "Enter" && e.shiftKey == false) {
             e.preventDefault();

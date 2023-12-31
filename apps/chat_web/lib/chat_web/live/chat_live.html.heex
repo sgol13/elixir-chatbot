@@ -37,16 +37,16 @@
   <div class="fixed bottom-0 pb-14 pt-4 bg-white max-w-prose">
     <.form for={%{}} phx-change="message_change" phx-submit="send_message" style="width: 65ch" phx-hook="TextArea">
       <div class="flex flex-row items-center bg-teal-0">
-        <.button style="margin: 0.5rem; padding-left: 1.2rem; padding-right: 1.2rem; padding-top: 0.7rem; padding-bottom: 0.7rem">
+        <.button class="self-end" style="margin: 0.5rem; padding-left: 1.2rem; padding-right: 1.2rem; padding-top: 0.7rem; padding-bottom: 0.7rem">
           send
         </.button>
-        <.input
-          type="textarea"
+        <textarea
+          class="border border-slate-700 rounded-xl focus:outline-none focus:border-slate-700 focus:ring-0 focus:ring-slate-700 no-scrollbar"
           name="new_message"
           value={@new_message}
           placeholder="Your message..."
           autocomplete="off"
-          style="width: 55ch; margin: 0.5rem; font-size: 1rem; line-height: 1.5rem; resize: none; height: auto;"
+          style="width: 55ch; margin: 0.5rem; resize: none; height: 45px; outline: none; overflow: scroll; max-height: 250px;"
           autofocus
         />
       </div>
