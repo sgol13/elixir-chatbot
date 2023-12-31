@@ -7,5 +7,7 @@ defmodule ChatWeb.Markdown do
     |> String.replace(~r/<ul>/, "<ul style=\"list-style-type: disc; list-style-position: inside; display: block; list-style: disc  outside none; margin: 1em 0; padding: 0 0 0 40px;\">")
     |> String.replace(~r/<a/, "<a style=\"text-decoration: underline; color: blue;\"")
     |> String.replace(~r/<pre>/, "<pre style=\"overflow: auto hidden;\">")
+    |> String.replace(~r/class="elixir"/, "class=\"language-elixir\"")
+    |> String.replace(~r/<code>/, "<code class=\"language-elixir\">")
   end
 end
