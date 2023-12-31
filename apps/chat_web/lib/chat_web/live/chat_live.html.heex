@@ -3,6 +3,7 @@
     <%= for message <- @messages do %>
       <li
         id={message.id}
+        phx-hook="Highlight"
         class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
       >
         <div class="text-gray-800 line-clamp-2 break-words">
