@@ -8,7 +8,7 @@
       >
         <div class="text-gray-800 line-clamp-2 break-words">
           <%=text = if message.sender == :user do
-                Regex.replace(~r/\n/m, message.text, "\n\n")
+                Regex.replace(~r/\n/m, message.text, "  \n")
               else
                 message.text
               end
