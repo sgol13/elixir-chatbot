@@ -38,8 +38,6 @@ Hooks.TextArea = {
             this.el.dispatchEvent(
               new Event("submit", {bubbles: true, cancelable: true})
             )
-          } else if (e.key == "Enter" && e.shiftKey == true) {
-            this.el.input.value += "\n"
           }
         })
       }

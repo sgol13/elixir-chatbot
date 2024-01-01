@@ -7,9 +7,14 @@
         class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
       >
         <div class="text-gray-800 line-clamp-2 break-words">
-          <%= message.text 
-          |> ChatWeb.Markdown.to_html()
-          |> raw() %>
+          <%=text = if message.sender == :user do
+                Regex.replace(~r/\n/m, message.text, "\n\n")
+              else
+                message.text
+              end
+              text 
+              |> ChatWeb.Markdown.to_html()
+              |> raw() %>
         </div>
         
         <%= if message.sender == :bot && length(message.fragments) > 0 do %>
