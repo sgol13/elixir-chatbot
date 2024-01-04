@@ -20,14 +20,14 @@ defmodule Tests.EmbeddingTests do
       {"intfloat/e5-large-v2", "query: ", "passage: "}
     ]
 
-    databases = ["test-elixir-only", "test-popular-packages"]
+    databases = ["mateon-test"]; #["test-elixir-only", "test-popular-packages"]
 
     cases =
       for {model, prepend_q, prepend_p} <- models, database <- databases do
         %EmbeddingTestsCase{
           embedding_model: {:hf, model},
           similarity_metrics: :cosine,
-          k: 100,
+          k: 1000,
           prepend_to_question: prepend_q,
           prepend_to_fragment: prepend_p,
           docs_db: database
@@ -39,7 +39,7 @@ defmodule Tests.EmbeddingTests do
         %EmbeddingTestsCase{
           embedding_model: {:openai, "text-embedding-ada-002"},
           similarity_metrics: :cosine,
-          k: 100,
+          k: 1000,
           docs_db: database
         }
       end
