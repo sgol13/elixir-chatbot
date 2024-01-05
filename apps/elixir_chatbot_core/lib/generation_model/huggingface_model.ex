@@ -25,7 +25,8 @@ defmodule ElixirChatbotCore.GenerationModel.HuggingfaceModel do
 
   defimpl GenerationModel, for: HuggingfaceModel do
     @impl true
-    def generate(model, question, _fragments, _metadata) do
+    def generate(model, messages, _fragments, _metadata) do
+      [%{text: question, role: :user} | _past_messages] = messages
       prompt = question # TODO: implement prompt building
       res =
         case model do

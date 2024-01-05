@@ -1,4 +1,5 @@
 defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
+  alias ElixirChatbotCore.Message
   alias ElixirChatbotCore.DocumentationManager.DocumentationFragment
   alias ElixirChatbotCore.GenerationModel.OpenAiModel
   alias ElixirChatbotCore.GenerationModel
@@ -11,7 +12,8 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   @guideline "You're a helpful assistant answering questions regarding Elixir programming language documentation. " <>
                "You have access to a subset of Elixir modules' documentation in a JSON format. Each element of the list consists " <>
-               "of a documentation chunk and its source (documentation of a module or a specific function). Provide answers in a markdown format."
+               "of a documentation chunk and its source (documentation of a module or a specific function). " <>
+               "Use markdown format in your responses. Provide practical examples."
 
   defstruct []
 
@@ -19,19 +21,19 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
     %__MODULE__{}
   end
 
-  def generate(question, fragments) do
-    question_tokens = count_tokens(question)
+  def generate(messages, fragments) do
+    messages_tokens = count_messages_tokens(messages)
     guideline_tokens = count_tokens(@guideline)
-    max_docs_tokens = @input_context - guideline_tokens - question_tokens
+    max_docs_tokens = @input_context - guideline_tokens - messages_tokens
 
     {selected_fragments, docs_tokens} =
       GenerationModel.select_fragments(fragments, &count_tokens/1, max_docs_tokens,
         fragment_overhead: 10
       )
 
-    body = build_body(selected_fragments, question)
+    body = build_body(selected_fragments, messages)
 
-    total_input_tokens = guideline_tokens + question_tokens + docs_tokens
+    total_input_tokens = guideline_tokens + messages_tokens + docs_tokens
     Logger.info("OpenAI model request [#{total_input_tokens} tokens]")
 
     case OpenAiClient.post_completions(body, recv_timeout: 180_000, retries: 6) do
@@ -45,7 +47,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
             response_content,
             docs_tokens,
             guideline_tokens,
-            question_tokens,
+            messages_tokens,
             total_input_tokens,
             usage_stats
           )
@@ -59,17 +61,18 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   defimpl GenerationModel.GenerationModel, for: OpenAiModel do
     @impl true
-    def generate(_model, question, fragments, _metadata) do
-      OpenAiModel.generate(question, fragments)
+    def generate(_model, messages, fragments, _metadata) do
+      OpenAiModel.generate(messages, fragments)
     end
   end
 
-  defp build_body(fragments, question) do
-    messages = [
-      build_guideline_message(),
-      build_docs_message(fragments),
-      build_question_message(question)
-    ]
+  defp build_body(fragments, chat_messages) do
+    messages =
+      [
+        build_guideline_message(),
+        build_docs_message(fragments)
+      ] ++
+        build_chat_messages(chat_messages)
 
     %{
       model: @openai_model_id,
@@ -101,8 +104,15 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
     |> build_message(:system)
   end
 
-  defp build_question_message(question) do
-    build_message(question, :user)
+  defp build_chat_messages(messages) do
+    messages
+    |> Enum.map(fn %{text: text, role: role} ->
+      case role do
+        :user -> build_message(text, :user)
+        :bot -> build_message(text, :system)
+      end
+    end)
+    |> Enum.reverse()
   end
 
   defp parse_response(response_body) do
@@ -118,7 +128,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
          response_content,
          docs_tokens,
          guideline_tokens,
-         question_tokens,
+         messages_tokens,
          total_input_tokens,
          usage_stats
        ) do
@@ -128,7 +138,7 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
       fragments: length(selected_fragments),
       docs_tk: docs_tokens,
       guideline_tk: guideline_tokens,
-      question_tk: question_tokens,
+      messages_tk: messages_tokens,
       total_input_tk: total_input_tokens,
       answer_tk: response_tokens,
       total_tk: total_input_tokens + response_tokens,
@@ -136,6 +146,12 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
       openai_prompt_tk: usage_stats["prompt_tokens"],
       openai_total_tk: usage_stats["total_tokens"]
     }
+  end
+
+  defp count_messages_tokens(messages) do
+    messages
+    |> Enum.map(fn %Message{text: text} -> count_tokens(text) end)
+    |> Enum.sum()
   end
 
   defp count_tokens(%DocumentationFragment{} = fragment) do

@@ -1,8 +1,8 @@
 defmodule ElixirChatbotCore.GenerationModel do
   defprotocol GenerationModel do
-    @spec generate(t(), String.t(), [String.t()], map()) ::
+    @spec generate(t(), [String.t()], [String.t()], map()) ::
             {:ok, String.t(), [String.t()]} | :error
-    def generate(model, question, fragments, metadata \\ %{})
+    def generate(model, messages, fragments, metadata \\ %{})
   end
 
   def select_fragments(fragments, count_tokens_fn, max_tokens, opts \\ []) do
