@@ -35,7 +35,8 @@ defmodule ElixirChatbotCore.MixProject do
       {:cubdb, " ~> 2.0.2"},
       {:httpoison, "~> 2.0"},
       {:earmark, "~> 1.4"},
-      {:gpt3_tokenizer, "~> 0.1.0"}
+      {:gpt3_tokenizer, "~> 0.1.0"},
+      {:uuid, "~>1.1.8"}
     ]
   end
 end

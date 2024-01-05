@@ -4,10 +4,10 @@
       <li
         id={message.id}
         phx-hook="Highlight"
-        class={"mb-4 py-4 px-4 border rounded-xl #{if message.sender == :bot, do: "bg-gray-200"}"}
+        class={"mb-4 py-4 px-4 border rounded-xl #{if message.role == :bot, do: "bg-gray-200"}"}
       >
         <div class="text-gray-800 line-clamp-2 break-words">
-          <%=text = if message.sender == :user do
+          <%=text = if message.role == :user do
                 Regex.replace(~r/\n/m, message.text, "  \n")
               else
                 message.text
@@ -17,7 +17,7 @@
               |> raw() %>
         </div>
         
-        <%= if message.sender == :bot && length(message.fragments) > 0 do %>
+        <%= if message.role == :bot && length(message.fragments) > 0 do %>
           <div class="pt-2 text-gray-500">
             <details class="[&_svg]:open:-rotate-180">
             <summary class="flex w-52 place-content-evenly cursor-pointer items-center rounded-xl border border-slate-700">

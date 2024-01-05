@@ -1,5 +1,8 @@
 defmodule ElixirChatbotCore.Chatbot do
+  alias ChatWeb.Message
   alias ElixirChatbotCore.GenerationModel.GenerationModel
+  alias ElixirChatbotCore.Message
+
   require Logger
   use GenServer
 
@@ -19,17 +22,28 @@ defmodule ElixirChatbotCore.Chatbot do
     {:ok, model}
   end
 
+  @spec generate([String.t()]) ::
+          {:ok, String.t(), [%ElixirChatbotCore.DocumentationManager.DocumentationFragment{}]}
+          | {:error, String.t(), [String.t()]}
+  def generate(messages) when is_list(messages) do
+    GenServer.call(__MODULE__, {:generate, messages}, 300_000)
+  end
+
   @spec generate(String.t()) ::
           {:ok, String.t(), [%ElixirChatbotCore.DocumentationManager.DocumentationFragment{}]}
           | {:error, String.t(), [String.t()]}
-  def generate(message) do
-    GenServer.call(__MODULE__, {:generate, message}, 300_000)
+  def generate(user_message_text) when is_binary(user_message_text) do
+    user_message = Message.user_message(user_message_text)
+    GenServer.call(__MODULE__, {:generate, [user_message], []}, 300_000)
   end
 
-  def handle_call({:generate, message}, _from, model) do
-    fragments = lookup_question(message, 100)
+  def handle_call({:generate, messages}, _from, model) do
+    [%{text: user_message_text} | _past_messages] = messages
+    _fragments = lookup_question(user_message_text, 100)
 
-    {:ok, response, selected_fragments, metadata} = GenerationModel.generate(model, message, fragments)
+    IO.inspect(messages)
+    # {:ok, response, selected_fragments, metadata} = GenerationModel.generate(model, message, fragments)
+    {:ok, response, selected_fragments, metadata} = {:ok, "abc", [], nil}
 
     {:reply, {:ok, response, selected_fragments, metadata}, model}
   end
