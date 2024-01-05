@@ -12,7 +12,8 @@ defmodule ElixirChatbotCore.GenerationModel.OpenAiModel do
 
   @guideline "You're a helpful assistant answering questions regarding Elixir programming language documentation. " <>
                "You have access to a subset of Elixir modules' documentation in a JSON format. Each element of the list consists " <>
-               "of a documentation chunk and its source (documentation of a module or a specific function). Provide answers in a markdown format."
+               "of a documentation chunk and its source (documentation of a module or a specific function). " <>
+               "Use markdown format in your responses. Provide practical examples."
 
   defstruct []
 

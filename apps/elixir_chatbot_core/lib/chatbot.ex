@@ -34,7 +34,7 @@ defmodule ElixirChatbotCore.Chatbot do
           | {:error, String.t(), [String.t()]}
   def generate(user_message_text) when is_binary(user_message_text) do
     user_message = Message.user_message(user_message_text)
-    GenServer.call(__MODULE__, {:generate, [user_message], []}, 300_000)
+    GenServer.call(__MODULE__, {:generate, [user_message]}, 300_000)
   end
 
   def handle_call({:generate, messages}, _from, model) do
