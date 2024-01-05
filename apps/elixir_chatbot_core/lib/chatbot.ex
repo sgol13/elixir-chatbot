@@ -38,12 +38,10 @@ defmodule ElixirChatbotCore.Chatbot do
   end
 
   def handle_call({:generate, messages}, _from, model) do
-    [%{text: user_message_text} | _past_messages] = messages
-    _fragments = lookup_question(user_message_text, 100)
+    [%{text: user_message_text, role: :user} | _past_messages] = messages
+    fragments = lookup_question(user_message_text, 100)
 
-    IO.inspect(messages)
-    # {:ok, response, selected_fragments, metadata} = GenerationModel.generate(model, message, fragments)
-    {:ok, response, selected_fragments, metadata} = {:ok, "abc", [], nil}
+    {:ok, response, selected_fragments, metadata} = GenerationModel.generate(model, messages, fragments)
 
     {:reply, {:ok, response, selected_fragments, metadata}, model}
   end

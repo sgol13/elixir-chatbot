@@ -26,11 +26,7 @@ defmodule ChatWeb.ChatLive do
 
   defp process_user_message(message_text, past_messages) do
     new_messages = [Message.user_message(message_text) | past_messages]
-
-    last_messages =
-      new_messages
-      |> Stream.map(&Message.discard_fragments/1)
-      |> Enum.take(@last_messages_limit)
+    last_messages = extract_last_messages(new_messages)
 
     Task.async(fn ->
       case ElixirChatbotCore.Chatbot.generate(last_messages) do
@@ -40,6 +36,13 @@ defmodule ChatWeb.ChatLive do
     end)
 
     new_messages
+  end
+
+  defp extract_last_messages(messages) do
+    messages
+    |> Enum.slice(0..-2)
+    |> Enum.map(&Message.discard_fragments/1)
+    |> Enum.take(@last_messages_limit)
   end
 
   def handle_info({:DOWN, _ref, _, _, _reason}, state) do
