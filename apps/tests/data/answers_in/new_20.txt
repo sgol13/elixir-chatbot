@@ -1,0 +1,20 @@
+What is PartitionSupervisor used for?
+How to check if a partition supervisor has any child alive?
+I've got a tensor x. How to calculate its Short-Time Fourier Transform?
+How to specify an axis when using argrelextrema in NxSignal?
+I want to do linear regression using Scholar. Can I specify different weights for various observations?
+Show me the example of polynomial regression in Elixir. Is there any library which can help with that?
+What optimizers are available in the Polaris package?
+Using Polaris package, create adam optimizer with learning rate 0.005 and the second moment decay equal to 0.95.
+What is the default number of steps performed by the linear_decay scheduler in Polaris?
+What schedulers allowing for selecting the number of decay steps are available in the Polaris package?
+Show me the example of implementing a naive bayes classifier using the Scholar package?
+Does Scholar.Neighbors.KNearestNeighbors enable regression or only classification?
+What model selection algorithms are available in Scholar?
+I use Scholar.Decomposition.PCA. How can I get the amount of variance explained by each of the selected components?
+How to show estimated coefficients and a bias term after linear regression in Scholar?
+Display probabilities of prediction for a given input x after training the logistic regression model in Scholar.
+Is there a package which helps evaluating a lazy expression in a time limited way? I want to set 500 ms limit.
+How to specify a tolerance for each spline polynomial in Scholar.BezierSpline?
+Implement grid search in Scholar. Test adam and adamw optimizers and learning rates: 0.1, 0.01, 0.001.
+Do one-hot encoding of a tensor t using Scholar package. There are 7 possible classes.
