@@ -73,3 +73,28 @@ iex(3)> Tests.DocsFetcher.fetch_documentation("db-3", headings_split: 1, allowed
 ```
 
 The databases will be created in the `<project_root>/tmp` directory by default.
+
+## Setup
+
+### Installing all necessary dependencies
+
+To run this project, install all necessary dependencies using `mix` and `npm`:
+
+```shell
+$ mix deps.get
+$ cd apps/chat_web
+$ npm install highlight.js --prefix assets
+```
+
+### Setting up OpenAI API Key
+
+To use OpenAI models within our project, you have to create an OpenAI account and configure your OpenAI API Key. Step-by-step instructions can be found in [OpenAI Documentation](https://platform.openai.com/docs/quickstart/step-2-setup-your-api-key).
+
+### Running the project
+
+To run this project, simply proceed to `chat_web` app and use `mix`:
+
+```shell
+$ cd apps/chat_web
+$ mix phx.server
+```

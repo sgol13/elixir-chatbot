@@ -1,0 +1,20 @@
+What's a tail call optimization? Show me the example.
+How can you implement custom protocols in Elixir?
+How to append a string at the end of an existing file?
+What does it mean if a variable's name starts from an underscore character?
+How can I concatenate two strings?
+Does Elixir list enable accessing a particular element in a constant time O(1)?
+How to pause an Elixir program for one second?
+How to cast a float to an integer?
+What is Mnesia library used for?
+Can I use pattern-matching based on string's content?
+How can embed a variable's value in the string?
+Is there a function which concatenates two streams?
+How to access element's index in Elixir Stream?
+What do exclamation mark and question mark mean at the end of the function name?
+Show me how to read a text file line by line.
+Is it possible to combine two maps in Elixir?
+What does an underscore character mean in the middle of the interger e.g. 20_000?
+What's the difference between call and cast?
+How to pattern-match a map?
+What should I return from handle_call function if I implement GenServer?
